@@ -5,6 +5,8 @@
 
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
+#define MAX_TOKEN 128
+#define DELIMETER " \t\r\n\a"
 
 #define STDIN     0
 #define STDOUT    1
@@ -15,27 +17,35 @@ typedef enum _bool {
   true = 1
 } bool;
 
-/* It might be changed for Async-signal-safe function. (read) */
-char * readLine() {
-  char *line = NULL;
-  size_t len = 0;
-  getline(&line, &len, stdin);
-  return line;
-}
+char * readLine();
+char ** getTokens(char *line);
 
 int main(int argc, char ** argv, char **envp) {
   
   char *prompt = "320sh> ";
   char *line = NULL;
+  char **tokens = NULL;
+  char *token = NULL;
+  int pos = 0;
 
   while(true) {
 
-    if (write(STDOUT, prompt, strlen(prompt)) == 0) { 
-      break;
-    }
+    write(STDOUT, prompt, strlen(prompt));
     
     line = readLine();
-    write(STDOUT, line, strnlen(line, MAX_INPUT));
+    tokens = getTokens(line);
+
+    pos = 0;
+    token = tokens[pos];
+
+    while(token != NULL) {
+      printf("%s\n", token);
+      pos++;
+      token = tokens[pos];
+    }
+
+    free(line);
+    free(tokens);
 
   // Execute the command, handling built-in commands separately 
   // Just echo the command line for now
@@ -43,6 +53,31 @@ int main(int argc, char ** argv, char **envp) {
   }
 
   return 0;
+}
+
+char * readLine() {
+  char *line = NULL;
+  size_t len = 0;
+
+  getline(&line, &len, stdin);
+  return line;
+}
+
+char ** getTokens(char *line) {
+  int pos = 0;
+  char **tokens = malloc(sizeof(char *) * MAX_TOKEN);
+  char *token;
+
+  token = strtok(line, DELIMETER);
+
+  while(token != NULL) {
+    tokens[pos] = token;
+    pos++;
+    token = strtok(NULL, DELIMETER);
+  }
+
+  tokens[pos] = NULL;
+  return tokens;
 }
 
 /*
