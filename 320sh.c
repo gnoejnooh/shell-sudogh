@@ -66,10 +66,28 @@ void printPrompt() {
 }
 
 char * readLine() {
-  char *line = NULL;
-  size_t len = 0;
 
-  getline(&line, &len, stdin);
+  char *line = malloc(sizeof(char) * MAX_INPUT);
+  char *cursor = NULL;
+  int count = 0;
+  int last_char = 0;
+
+  for(count = 0, cursor = line, last_char = 1;
+    count < MAX_INPUT && last_char != '\n';
+    cursor++, count++) { 
+
+    read(STDIN, cursor, 1);
+    last_char = *cursor;
+  
+    if(last_char == 3) { // Ctrl + C
+      write(STDOUT, "^c", 2);
+    } else {
+      write(STDOUT, &last_char, 1);
+    }
+  }
+
+  *cursor = '\0';
+
   return line;
 }
 
