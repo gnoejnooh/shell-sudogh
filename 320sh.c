@@ -138,18 +138,39 @@ int pwdCommand() {
   return TRUE;
 }
 
+// TBI
 int echoCommand(char **args) {
   return TRUE;
 }
 
 int setCommand(char **args) {
-  if(setenv(args[1], args[3], TRUE) != 0) {
+  char *name = NULL;
+  char *value = NULL;
+  const char *delimeter = "=";
+
+  if(args[2] != NULL) {
+    strcat(args[1], args[2]);
+  }
+
+  if(args[3] != NULL) {
+    strcat(args[1], args[3]);
+  }
+
+  name = strtok(args[1], delimeter);
+  value = strtok(NULL, delimeter);
+
+  if(name == NULL || value == NULL) {
+    return FALSE;
+  }
+
+  if(setenv(name, value, TRUE) != 0) {
     return FALSE;
   }
 
   return TRUE;
 }
 
+// TBI
 int helpCommand() {
   return TRUE;
 }
@@ -159,7 +180,7 @@ int launch(char **args) {
 
   if((pid = fork()) == 0) {
     if(execvp(args[0], args) < 0) {
-      fprintf(stderr, "%s: Command not found.\n", args[0]);
+      fprintf(stderr, "%s: Command doesn't exist.\n", args[0]);
       exit(EXIT_FAILURE);
     }
     exit(EXIT_SUCCESS);
