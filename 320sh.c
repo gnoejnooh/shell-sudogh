@@ -2,47 +2,42 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
 #define MAX_TOKEN 128
-#define DELIMETER " \t\r\n\a"
+#define DELIMETER " \n\t\f\r\v"
+
+#define TRUE      1
+#define FALSE     0
 
 #define STDIN     0
 #define STDOUT    1
 #define STDERR    2
 
-typedef enum _bool {
-  false = 0,
-  true = 1
-} bool;
-
 char * readLine();
 char ** getTokens(char *line);
+int execute(char **args);
+
+int cdCommand(char **args);
+int launch(char **args);
 
 int main(int argc, char ** argv, char **envp) {
   
   char *prompt = "320sh> ";
   char *line = NULL;
   char **tokens = NULL;
-  char *token = NULL;
-  int pos = 0;
+  int status;
 
-  while(true) {
+  do {
 
     write(STDOUT, prompt, strlen(prompt));
     
     line = readLine();
     tokens = getTokens(line);
-
-    pos = 0;
-    token = tokens[pos];
-
-    while(token != NULL) {
-      printf("%s\n", token);
-      pos++;
-      token = tokens[pos];
-    }
+    status = execute(tokens);
 
     free(line);
     free(tokens);
@@ -50,7 +45,7 @@ int main(int argc, char ** argv, char **envp) {
   // Execute the command, handling built-in commands separately 
   // Just echo the command line for now
   // write(1, cmd, strnlen(cmd, MAX_INPUT));
-  }
+  } while(status);
 
   return 0;
 }
@@ -78,6 +73,51 @@ char ** getTokens(char *line) {
 
   tokens[pos] = NULL;
   return tokens;
+}
+
+int execute(char **args) {
+
+  if(args[0] == NULL) {
+    return TRUE;
+  }
+
+  if(strcmp(args[0], "cd") == 0) {
+    return cdCommand(args);
+  } else if(strcmp(args[0], "pwd") == 0) {
+    return TRUE;
+  } else if(strcmp(args[0], "echo") == 0) {
+    return TRUE;
+  } else if(strcmp(args[0], "set") == 0) {
+    return TRUE;
+  } else if(strcmp(args[0], "help") == 0) {
+    return TRUE;
+  }
+
+  return launch(args);
+}
+
+int cdCommand(char **args) {
+  if(args[1] == NULL) {
+    chdir(getenv("HOME"));
+  } else {
+    chdir(args[1]);
+  }
+  return TRUE;
+}
+
+int launch(char **args) {
+  pid_t pid;
+
+  if((pid = fork()) == 0) {
+    if(execvp(args[0], args) < 0) {
+      fprintf(stderr, "%s: Command not found.\n", args[0]);
+      exit(EXIT_FAILURE);
+    }
+    exit(EXIT_SUCCESS);
+  }
+
+  waitpid(pid, NULL, 0);
+  return TRUE;
 }
 
 /*
