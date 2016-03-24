@@ -8,7 +8,6 @@
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
 #define MAX_TOKEN 128
-#define DELIMETER " \n\t\f\r\v"
 
 #define TRUE      1
 #define FALSE     0
@@ -17,24 +16,27 @@
 #define STDOUT    1
 #define STDERR    2
 
+void printPrompt();
 char * readLine();
 char ** getTokens(char *line);
 int execute(char **args);
 
 int cdCommand(char **args);
 int pwdCommand();
+int echoCommand(char **args);
+int setCommand(char **args);
+int helpCommand();
+
 int launch(char **args);
 
 int main(int argc, char ** argv, char **envp) {
   
-  char *prompt = "320sh> ";
   char *line = NULL;
   char **tokens = NULL;
-  int status;
+  int status = 0;
 
   do {
-
-    write(STDOUT, prompt, strlen(prompt));
+    printPrompt();
     
     line = readLine();
     tokens = getTokens(line);
@@ -51,6 +53,18 @@ int main(int argc, char ** argv, char **envp) {
   return 0;
 }
 
+void printPrompt() {
+  char *prompt = "320sh> ";
+  char *cwd = getcwd(NULL, 0);
+  
+  cwd = strrchr(cwd, '/');
+
+  write(STDOUT, "[", 1);
+  write(STDOUT, cwd, strlen(cwd));
+  write(STDOUT, "] ", 2);
+  write(STDOUT, prompt, strlen(prompt));
+}
+
 char * readLine() {
   char *line = NULL;
   size_t len = 0;
@@ -62,14 +76,15 @@ char * readLine() {
 char ** getTokens(char *line) {
   int pos = 0;
   char **tokens = malloc(sizeof(char *) * MAX_TOKEN);
-  char *token;
+  char *token = NULL;
+  const char *delimeter = " \n\t\f\r\v";
 
-  token = strtok(line, DELIMETER);
+  token = strtok(line, delimeter);
 
   while(token != NULL) {
     tokens[pos] = token;
     pos++;
-    token = strtok(NULL, DELIMETER);
+    token = strtok(NULL, delimeter);
   }
 
   tokens[pos] = NULL;
@@ -87,11 +102,13 @@ int execute(char **args) {
   } else if(strcmp(args[0], "pwd") == 0) {
     return pwdCommand();
   } else if(strcmp(args[0], "echo") == 0) {
-    return TRUE;
+    return echoCommand(args);
   } else if(strcmp(args[0], "set") == 0) {
-    return TRUE;
+    return setCommand(args);
   } else if(strcmp(args[0], "help") == 0) {
-    return TRUE;
+    return helpCommand();
+  } else if(strcmp(args[0], "exit") == 0) {
+    return FALSE;
   }
 
   return launch(args);
@@ -111,7 +128,7 @@ int cdCommand(char **args) {
 }
 
 int pwdCommand() {
-  char *cwd;
+  char *cwd = NULL;
 
   if((cwd = getcwd(NULL, 0)) == NULL) {
     return FALSE;
@@ -121,8 +138,24 @@ int pwdCommand() {
   return TRUE;
 }
 
+int echoCommand(char **args) {
+  return TRUE;
+}
+
+int setCommand(char **args) {
+  if(setenv(args[1], args[3], TRUE) != 0) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+int helpCommand() {
+  return TRUE;
+}
+
 int launch(char **args) {
-  pid_t pid;
+  pid_t pid = 0;
 
   if((pid = fork()) == 0) {
     if(execvp(args[0], args) < 0) {
