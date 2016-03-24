@@ -148,16 +148,19 @@ int setCommand(char **args) {
   char *value = NULL;
   const char *delimeter = "=";
 
-  if(args[2] != NULL) {
-    strcat(args[1], args[2]);
+  if(args[3] != NULL && strcmp(args[2], "=") == 0) { // NAME = VALUE format
+    name = args[1];
+    value = args[3];
+  } else if(args[2] != NULL && args[1][strlen(args[1])-1] == '=') { // NAME= VALUE format
+    name = strtok(args[1], delimeter);
+    value = args[2];
+  } else if(args[2] != NULL && args[2][0] == '=') { // NAME =VALUE format
+    name = args[1];
+    value = &args[2][1];
+  } else { // NAME=VALUE format
+    name = strtok(args[1], delimeter);
+    value = strtok(NULL, delimeter);
   }
-
-  if(args[3] != NULL) {
-    strcat(args[1], args[3]);
-  }
-
-  name = strtok(args[1], delimeter);
-  value = strtok(NULL, delimeter);
 
   if(name == NULL || value == NULL) {
     return FALSE;
