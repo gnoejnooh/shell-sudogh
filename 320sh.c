@@ -22,6 +22,7 @@ char ** getTokens(char *line);
 int execute(char **args);
 
 int cdCommand(char **args);
+int pwdCommand();
 int launch(char **args);
 
 int main(int argc, char ** argv, char **envp) {
@@ -84,7 +85,7 @@ int execute(char **args) {
   if(strcmp(args[0], "cd") == 0) {
     return cdCommand(args);
   } else if(strcmp(args[0], "pwd") == 0) {
-    return TRUE;
+    return pwdCommand();
   } else if(strcmp(args[0], "echo") == 0) {
     return TRUE;
   } else if(strcmp(args[0], "set") == 0) {
@@ -98,10 +99,25 @@ int execute(char **args) {
 
 int cdCommand(char **args) {
   if(args[1] == NULL) {
-    chdir(getenv("HOME"));
+    if(chdir(getenv("HOME")) != 0) {
+      return FALSE;
+    }
   } else {
-    chdir(args[1]);
+    if(chdir(args[1]) != 0) {
+      return FALSE;
+    }
   }
+  return TRUE;
+}
+
+int pwdCommand() {
+  char *cwd;
+
+  if((cwd = getcwd(NULL, 0)) == NULL) {
+    return FALSE;
+  }
+
+  printf("%s\n", cwd);
   return TRUE;
 }
 
