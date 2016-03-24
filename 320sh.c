@@ -116,25 +116,16 @@ int execute(char **args) {
 
 int cdCommand(char **args) {
   if(args[1] == NULL) {
-    if(chdir(getenv("HOME")) != 0) {
-      return FALSE;
-    }
+    chdir(getenv("HOME"));
   } else {
-    if(chdir(args[1]) != 0) {
-      return FALSE;
-    }
+    chdir(args[1]);
   }
+
   return TRUE;
 }
 
 int pwdCommand() {
-  char *cwd = NULL;
-
-  if((cwd = getcwd(NULL, 0)) == NULL) {
-    return FALSE;
-  }
-
-  printf("%s\n", cwd);
+  printf("%s\n", getcwd(NULL, 0));
   return TRUE;
 }
 
@@ -157,17 +148,15 @@ int setCommand(char **args) {
   } else if(args[2] != NULL && args[2][0] == '=') { // NAME =VALUE format
     name = args[1];
     value = &args[2][1];
-  } else { // NAME=VALUE format
+  } else if(strchr(args[1], '=') != NULL) { // NAME=VALUE format
     name = strtok(args[1], delimeter);
     value = strtok(NULL, delimeter);
   }
 
-  if(name == NULL || value == NULL) {
-    return FALSE;
-  }
-
-  if(setenv(name, value, TRUE) != 0) {
-    return FALSE;
+  if(name != NULL && value != NULL) {
+    setenv(name, value, TRUE);
+  } else {
+    fprintf(stderr, "unsupported format\n");
   }
 
   return TRUE;
@@ -183,7 +172,7 @@ int launch(char **args) {
 
   if((pid = fork()) == 0) {
     if(execvp(args[0], args) < 0) {
-      fprintf(stderr, "%s: Command doesn't exist.\n", args[0]);
+      fprintf(stderr, "%s: command not found\n", args[0]);
       exit(EXIT_FAILURE);
     }
     exit(EXIT_SUCCESS);
