@@ -21,7 +21,7 @@
 #define STDERR    2
 
 void printPrompt();
-char * readLine();
+char * readLine(CommandList *commandList);
 char ** getTokens(char *line);
 void execute(char **args, int *status, int *run);
 
@@ -59,7 +59,7 @@ int main(int argc, char ** argv, char **envp) {
 
   do {
     printPrompt();
-    line = readLine();
+    line = readLine(commandList);
     insertCommand(commandList, line);
 
     tokens = getTokens(line);
@@ -95,26 +95,106 @@ void printPrompt() {
   write(STDOUT, prompt, strlen(prompt));
 }
 
-char * readLine() {
+char * readLine(CommandList *commandList) {
 
   char *line = malloc(sizeof(char) * MAX_INPUT);
-  char *cursor = NULL;
+  char *cursor = line;
   int count = 0;
   int last_char = 0;
+  int i = 0;
 
-  for(count = 0, cursor = line, last_char = 1;
-    count < MAX_INPUT && last_char != '\n';
-    cursor++, count++) { 
+  while(count < MAX_INPUT && last_char != '\n') {
 
     read(STDIN, cursor, 1);
     last_char = *cursor;
-  
+
     if(last_char == 3) { // Ctrl + C
       write(STDOUT, "^c", 2);
-    } else if(last_char != 0 && (last_char == 127 || last_char == 8)) {
+      cursor++;
+      count++;
+    } else if(last_char != 0 && (last_char == 127 || last_char == 8)) { // Backspace
       write(STDOUT, "\b \b", 3);
-      cursor -= 2;
-    } 
+      cursor--;
+      count--;
+    } else if(last_char == 27) {
+      read(STDIN, cursor, 1);
+      read(STDIN, cursor, 1);
+      last_char = *cursor;
+      
+      switch(last_char) {
+      case 'A': // UP KEY
+
+        for(i=0; i<count; i++) {
+          write(STDOUT, "\b", 1);
+        }
+        for(i=0; i<count; i++) {
+          write(STDOUT, " ", 1);
+        }
+        for(i=0; i<count; i++) {
+          write(STDOUT, "\b", 1);
+        }
+
+        count = -1;
+        *line = '\0';
+        cursor = line;
+
+        break;
+      case 'B': // DOWN KEY
+
+        for(i=0; i<count; i++) {
+          write(STDOUT, "\b", 1);
+        }
+        for(i=0; i<count; i++) {
+          write(STDOUT, " ", 1);
+        }
+        for(i=0; i<count; i++) {
+          write(STDOUT, "\b", 1);
+        }
+
+        count = -1;
+        *line = '\0';
+        cursor = line;
+        break;
+      case 'C': // RIGHT KEY
+
+        for(i=0; i<count; i++) {
+          write(STDOUT, "\b", 1);
+        }
+        for(i=0; i<count; i++) {
+          write(STDOUT, " ", 1);
+        }
+        for(i=0; i<count; i++) {
+          write(STDOUT, "\b", 1);
+        }
+
+        count = -1;
+        *line = '\0';
+        cursor = line;
+        break;
+      case 'D': // LEFT KEY
+
+        for(i=0; i<count; i++) {
+          write(STDOUT, "\b", 1);
+        }
+        for(i=0; i<count; i++) {
+          write(STDOUT, " ", 1);
+        }
+        for(i=0; i<count; i++) {
+          write(STDOUT, "\b", 1);
+        }
+
+        count = -1;
+        *line = '\0';
+        cursor = line;
+        break;
+      default:
+        break;  
+      }
+    } else {
+      write(STDOUT, &last_char, 1);
+      cursor++;
+      count++;
+    }
     /*
     else if(strcmp(cursor, "\027[C")) {
       write(STDOUT, " ", 1);
@@ -124,9 +204,6 @@ char * readLine() {
       cursor += 2;
     } 
     */
-    else {
-      write(STDOUT, &last_char, 1);
-    }
   }
 
   *cursor = '\0';
@@ -301,7 +378,7 @@ void launch(char **args, int *status) {
       fprintf(stderr, "%s: command not found\n", args[0]);
       exit(EXIT_FAILURE);
     }
-    exit(SUCCESS);
+    exit(EXIT_SUCCESS);
   }
 
   waitpid(pid, status, 0);
