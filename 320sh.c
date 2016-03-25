@@ -33,12 +33,14 @@ int main(int argc, char ** argv, char **envp) {
 
   char *line = NULL;
   char **tokens = NULL;
-  int status = 0, debug = 0, c;
+  int status = 0;
+  int debug = 0;
+  int c = 0;
 
   while((c = getopt(argc, argv, "d")) != -1){
     switch(c) {
       case 'd':
-        debug = 1;
+        debug = TRUE;
         break;
       default:
         break;
@@ -50,12 +52,14 @@ int main(int argc, char ** argv, char **envp) {
     line = readLine();
     tokens = getTokens(line);
 
-    if(debug == 1) {
+    if(debug == TRUE) {
       fprintf(stderr, "RUNNING: %s\n", *tokens);  
     }
+
     execute(tokens, &status, debug);
-    if(debug == 1) {
-      fprintf(stderr, "ENDED: %s (ret=%d)\n", *tokens, status);  
+
+    if(debug == TRUE) {
+      fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
     }
 
     free(line);
@@ -225,7 +229,7 @@ void helpCommand() {
   return;
 }
 
-void launch(char **args, int *exitStatus) {
+void launch(char **args, int *status) {
   pid_t pid = 0;
 
   if((pid = fork()) == 0) {
@@ -236,7 +240,7 @@ void launch(char **args, int *exitStatus) {
     exit(EXIT_SUCCESS);
   }
 
-  waitpid(pid, exitStatus, 0);
+  waitpid(pid, status, 0);
 }
 
 /*
