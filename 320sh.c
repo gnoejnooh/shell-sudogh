@@ -202,20 +202,20 @@ void setCommand(char **args) {
 
 // TBI
 void helpCommand() {
-    char *USAGE = ("\n"
-  "JOB_SPEC [&]\n"
-  ". filename [arguments]\n"
-  "[ arg...]\n"
-  "pwd [-LP]\n"
-  "\n"
-  "(( expression ))\n"
-  ":\n"
-  "[[ expression ]]\n"
-  "cd [-L|-P] [dir]\n"
-  "echo [-neE] [arg ...]\n"
-  "exit\n"
-  "help\n"
-  "set opt\n");
+  char *USAGE = (
+  "320 SHell Builtin Commands\n"
+  "cd: cd [dir]\n"
+  "    Change the current directory to DIR. The variable $HOME is the default DIR.\n"
+  "pwd: pwd\n"
+  "     Print the current working directory.\n"
+  "echo: echo\n"
+  "     Output the ARGs.\n"
+  "set: set opt\n"
+  "     Modify existing environment variables and create new ones.\n"
+  "exit: exit\n"
+  "     Exit the shell with a status.\n"
+  "help: help\n"
+  "     Display helpful information about builtin commands.\n");
   printf("%s", USAGE);
   return;
 }
