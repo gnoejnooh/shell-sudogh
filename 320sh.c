@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "Command.h"
 
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
@@ -22,22 +23,26 @@
 void printPrompt();
 char * readLine();
 char ** getTokens(char *line);
-void execute(char **args, int *status, int debug);
+void execute(char **args, int *status, int *run);
 
 void cdCommand(char **args, int *status);
 void pwdCommand(int *status);
 void echoCommand(char **args, int *status);
 void setCommand(char **args, int *status);
 void helpCommand(int *status);
+void exitCommand(int *status, int *run);
 
 void launch(char **args, int *status);
 
 int main(int argc, char ** argv, char **envp) {
 
+  CommandList *commandList = malloc(sizeof(CommandList));
+
   char *line = NULL;
   char **tokens = NULL;
   int status = 0;
-  int debug = 0;
+  int run = TRUE;
+  int debug = FALSE;
   int c = 0;
 
   while((c = getopt(argc, argv, "d")) != -1){
@@ -50,16 +55,20 @@ int main(int argc, char ** argv, char **envp) {
       }
   }
 
-  while(TRUE) {
+  initializeList(commandList);
+
+  do {
     printPrompt();
     line = readLine();
+    insertCommand(commandList, line);
+
     tokens = getTokens(line);
 
     if(debug == TRUE) {
       fprintf(stderr, "RUNNING: %s\n", *tokens);  
     }
 
-    execute(tokens, &status, debug);
+    execute(tokens, &status, &run);
 
     if(debug == TRUE) {
       fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
@@ -67,8 +76,10 @@ int main(int argc, char ** argv, char **envp) {
 
     free(line);
     free(tokens);
-  }
+  } while(run == TRUE);
 
+  freeList(commandList);
+  free(commandList);
   return 0;
 }
 
@@ -127,22 +138,28 @@ char ** getTokens(char *line) {
   return tokens;
 }
 
-void execute(char **args, int *status, int debug) {
+void execute(char **args, int *status, int *run) {
   if(args[0] == NULL) {
     return;
   }
   if(strcmp(args[0], "cd") == 0) {
-    return cdCommand(args, status);
+    cdCommand(args, status);
+    return;
   } else if(strcmp(args[0], "pwd") == 0) {
-    return pwdCommand(status);
+    pwdCommand(status);
+    return;
   } else if(strcmp(args[0], "echo") == 0) {
-    return echoCommand(args, status);
+    echoCommand(args, status);
+    return;
   } else if(strcmp(args[0], "set") == 0) {
-    return setCommand(args, status);
+    setCommand(args, status);
+    return;
   } else if(strcmp(args[0], "help") == 0) {
-    return helpCommand(status);
+    helpCommand(status);
+    return;
   } else if(strcmp(args[0], "exit") == 0) {
-    exit(EXIT_SUCCESS);
+    exitCommand(status, run);
+    return;
   }
 
   launch(args, status);
@@ -254,6 +271,12 @@ void helpCommand(int *status) {
 
   printf("%s", USAGE);
   
+  *status = SUCCESS;
+}
+
+void exitCommand(int *status, int *run) {
+  *status = FAILURE;
+  *run = FALSE;
   *status = SUCCESS;
 }
 
