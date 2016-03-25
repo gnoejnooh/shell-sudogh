@@ -19,7 +19,7 @@
 void printPrompt();
 char * readLine();
 char ** getTokens(char *line);
-void execute(char **args, int *status);
+void execute(char **args, int *status, int debug);
 
 void cdCommand(char **args);
 void pwdCommand();
@@ -33,14 +33,30 @@ int main(int argc, char ** argv, char **envp) {
 
   char *line = NULL;
   char **tokens = NULL;
-  int status = 0;
+  int status = 0, debug = 0, c;
+
+  while((c = getopt(argc, argv, "d")) != -1){
+    switch(c) {
+      case 'd':
+        debug = 1;
+        break;
+      default:
+        break;
+      }
+  }
 
   while(TRUE) {
     printPrompt();
-    
     line = readLine();
     tokens = getTokens(line);
-    execute(tokens, &status);
+
+    if(debug == 1) {
+      fprintf(stderr, "RUNNING: %s\n", *tokens);  
+    }
+    execute(tokens, &status, debug);
+    if(debug == 1) {
+      fprintf(stderr, "ENDED: %s (ret=%d)\n", *tokens, status);  
+    }
 
     free(line);
     free(tokens);
@@ -62,6 +78,7 @@ void printPrompt() {
 }
 
 char * readLine() {
+
   char *line = malloc(sizeof(char) * MAX_INPUT);
   char *cursor = NULL;
   int count = 0;
@@ -72,7 +89,7 @@ char * readLine() {
     cursor++, count++) { 
 
     read(STDIN, cursor, 1);
-  last_char = *cursor;
+    last_char = *cursor;
   
     if(last_char == 3) { // Ctrl + C
       write(STDOUT, "^c", 2);
@@ -82,7 +99,6 @@ char * readLine() {
   }
 
   *cursor = '\0';
-
   return line;
 }
 
@@ -104,11 +120,10 @@ char ** getTokens(char *line) {
   return tokens;
 }
 
-void execute(char **args, int *status) {
+void execute(char **args, int *status, int debug) {
   if(args[0] == NULL) {
     return;
   }
-
   if(strcmp(args[0], "cd") == 0) {
     return cdCommand(args);
   } else if(strcmp(args[0], "pwd") == 0) {
@@ -138,6 +153,8 @@ void pwdCommand() {
   printf("%s\n", getcwd(NULL, 0));
 }
 
+
+// TBI
 void echoCommand(char **args, int *status) {
   char *name = NULL;
 
@@ -190,6 +207,21 @@ void setCommand(char **args) {
 
 // TBI
 void helpCommand() {
+  char *USAGE = (
+  "320 SHell Builtin Commands\n"
+  "cd: cd [dir]\n"
+  "    Change the current directory to DIR. The variable $HOME is the default DIR.\n"
+  "pwd: pwd\n"
+  "     Print the current working directory.\n"
+  "echo: echo\n"
+  "     Output the ARGs.\n"
+  "set: set opt\n"
+  "     Modify existing environment variables and create new ones.\n"
+  "exit: exit\n"
+  "     Exit the shell with a status.\n"
+  "help: help\n"
+  "     Display helpful information about builtin commands.\n");
+  printf("%s", USAGE);
   return;
 }
 
