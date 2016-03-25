@@ -146,16 +146,23 @@ void execute(char **args, int *status, int debug) {
 }
 
 void cdCommand(char **args, int *status) {
+  *status = EXIT_FAILURE;
+
   if(args[1] == NULL) {
     chdir(getenv("HOME"));
   } else {
-    chdir(args[1]);
+    if(chdir(args[1]) == -1) {
+      fprintf(stderr, "cd: %s: No such file or directory\n", args[1]);
+      return;
+    }
   }
 
   *status = EXIT_SUCCESS;
 }
 
 void pwdCommand(int *status) {
+  *status = EXIT_FAILURE;
+
   printf("%s\n", getcwd(NULL, 0));
 
   *status = EXIT_SUCCESS;
@@ -166,9 +173,11 @@ void pwdCommand(int *status) {
 void echoCommand(char **args, int *status) {
   char *name = NULL;
 
+  *status = EXIT_FAILURE;
+
   if(args[1] == NULL) { // echo
     fprintf(stderr, "unsupported format\n");
-    *status = EXIT_FAILURE;
+    return;
   } else {
     if(args[1][0] == '$') {
       name = &args[1][1];
@@ -195,6 +204,8 @@ void setCommand(char **args, int *status) {
   char *value = NULL;
   const char *delimeter = "=";
 
+  *status = EXIT_FAILURE;
+
   if(args[3] != NULL && strcmp(args[2], "=") == 0) { // NAME = VALUE format
     name = args[1];
     value = args[3];
@@ -220,6 +231,7 @@ void setCommand(char **args, int *status) {
 
 // TBI
 void helpCommand(int *status) {
+  
   char *USAGE = (
   "320 SHell Builtin Commands\n"
   "cd: cd [dir]\n"
@@ -234,6 +246,9 @@ void helpCommand(int *status) {
   "     Exit the shell with a status.\n"
   "help: help\n"
   "     Display helpful information about builtin commands.\n");
+
+  *status = EXIT_FAILURE;
+
   printf("%s", USAGE);
   
   *status = EXIT_SUCCESS;
