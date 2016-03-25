@@ -19,28 +19,29 @@
 void printPrompt();
 char * readLine();
 char ** getTokens(char *line);
-int execute(char **args);
+int execute(char **args, int *exitStatus);
 
 int cdCommand(char **args);
 int pwdCommand();
-int echoCommand(char **args);
+int echoCommand(char **args, int *exitStatus);
 int setCommand(char **args);
 int helpCommand();
 
-int launch(char **args);
+int launch(char **args, int *exitStatus);
 
 int main(int argc, char ** argv, char **envp) {
-  
+
   char *line = NULL;
   char **tokens = NULL;
   int status = 0;
+  int exitStatus = 0;
 
   do {
     printPrompt();
     
     line = readLine();
     tokens = getTokens(line);
-    status = execute(tokens);
+    status = execute(tokens, &exitStatus);
 
     free(line);
     free(tokens);
@@ -77,7 +78,7 @@ char * readLine() {
     cursor++, count++) { 
 
     read(STDIN, cursor, 1);
-    last_char = *cursor;
+  last_char = *cursor;
   
     if(last_char == 3) { // Ctrl + C
       write(STDOUT, "^c", 2);
@@ -109,7 +110,7 @@ char ** getTokens(char *line) {
   return tokens;
 }
 
-int execute(char **args) {
+int execute(char **args, int *exitStatus) {
 
   if(args[0] == NULL) {
     return TRUE;
@@ -120,7 +121,7 @@ int execute(char **args) {
   } else if(strcmp(args[0], "pwd") == 0) {
     return pwdCommand();
   } else if(strcmp(args[0], "echo") == 0) {
-    return echoCommand(args);
+    return echoCommand(args, exitStatus);
   } else if(strcmp(args[0], "set") == 0) {
     return setCommand(args);
   } else if(strcmp(args[0], "help") == 0) {
@@ -129,7 +130,7 @@ int execute(char **args) {
     return FALSE;
   }
 
-  return launch(args);
+  return launch(args, exitStatus);
 }
 
 int cdCommand(char **args) {
@@ -147,8 +148,29 @@ int pwdCommand() {
   return TRUE;
 }
 
-// TBI
-int echoCommand(char **args) {
+int echoCommand(char **args, int *exitStatus) {
+  char *name = NULL;
+
+  if(args[1] == NULL) { // echo
+    fprintf(stderr, "unsupported format\n");
+  } else {
+    if(args[1][0] == '$') {
+      name = &args[1][1];
+
+      if(strcmp(name, "?") == 0) { // echo $?
+        printf("%d\n", WEXITSTATUS(*exitStatus));
+      } else if(strcmp(args[1], "$") == 0) { // echo $
+        printf("$\n");
+      } else if(getenv(name) != NULL) { // echo $name
+        printf("%s\n", getenv(name));
+      } else { // echo $non_exist
+        printf("\n");
+      }
+    } else {
+      printf("%s\n", args[1]); // echo text
+    }
+  }
+
   return TRUE;
 }
 
@@ -185,7 +207,7 @@ int helpCommand() {
   return TRUE;
 }
 
-int launch(char **args) {
+int launch(char **args, int *exitStatus) {
   pid_t pid = 0;
 
   if((pid = fork()) == 0) {
@@ -196,7 +218,7 @@ int launch(char **args) {
     exit(EXIT_SUCCESS);
   }
 
-  waitpid(pid, NULL, 0);
+  waitpid(pid, exitStatus, 0);
   return TRUE;
 }
 
