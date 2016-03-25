@@ -18,25 +18,28 @@ void insertCommand(CommandList *list, char *line) {
 	if(list->count < CAPACITY) {
 		if(list->count == 0) {
 			list->head = command;
-			list->head->prev = command;
-			list->head->next = command;
-		} else if(list->count == 1) {
-			command->prev = list->head;
-			command->next = list->head;
-			list->head->prev = command;
-			list->head->next = command;
-			list->head = command;
+			list->tail = command;
+			list->head->prev = NULL;
+			list->head->next = NULL;
 		} else {
-			command->prev = list->head->prev;
+			command->prev = NULL;
 			command->next = list->head;
-			list->head->prev->next = command;
 			list->head->prev = command;
 			list->head = command;
 		}
 		(list->count)++;
 	} else {
-		list->head = list->head->prev;
-		strcpy(list->head->line, line);
+		Command *temp = NULL;
+
+		command->prev = NULL;
+		command->next = list->head;
+		list->head->prev = command;
+		list->head = command;
+		
+		temp = list->tail;
+		list->tail = list->tail->prev;
+		list->tail->next = NULL;
+		free(temp);
 	}
 }
 
