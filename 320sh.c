@@ -111,7 +111,20 @@ char * readLine() {
   
     if(last_char == 3) { // Ctrl + C
       write(STDOUT, "^c", 2);
-    } else {
+    } else if(last_char != 0 && (last_char == 127 || last_char == 8)) {
+      write(STDOUT, "\b \b", 3);
+      cursor -= 2;
+    } 
+    /*
+    else if(strcmp(cursor, "\027[C")) {
+      write(STDOUT, " ", 1);
+      cursor += 2;
+    } else if(strcmp(cursor, "\027[D")) {
+      write(STDOUT, "", 1);
+      cursor += 2;
+    } 
+    */
+    else {
       write(STDOUT, &last_char, 1);
     }
   }
