@@ -19,37 +19,32 @@
 void printPrompt();
 char * readLine();
 char ** getTokens(char *line);
-int execute(char **args, int *exitStatus);
+void execute(char **args, int *status);
 
-int cdCommand(char **args);
-int pwdCommand();
-int echoCommand(char **args, int *exitStatus);
-int setCommand(char **args);
-int helpCommand();
+void cdCommand(char **args);
+void pwdCommand();
+void echoCommand(char **args, int *status);
+void setCommand(char **args);
+void helpCommand();
 
-int launch(char **args, int *exitStatus);
+void launch(char **args, int *status);
 
 int main(int argc, char ** argv, char **envp) {
 
   char *line = NULL;
   char **tokens = NULL;
   int status = 0;
-  int exitStatus = 0;
 
-  do {
+  while(TRUE) {
     printPrompt();
     
     line = readLine();
     tokens = getTokens(line);
-    status = execute(tokens, &exitStatus);
+    execute(tokens, &status);
 
     free(line);
     free(tokens);
-
-  // Execute the command, handling built-in commands separately 
-  // Just echo the command line for now
-  // write(1, cmd, strnlen(cmd, MAX_INPUT));
-  } while(status);
+  }
 
   return 0;
 }
@@ -67,7 +62,6 @@ void printPrompt() {
 }
 
 char * readLine() {
-
   char *line = malloc(sizeof(char) * MAX_INPUT);
   char *cursor = NULL;
   int count = 0;
@@ -110,10 +104,9 @@ char ** getTokens(char *line) {
   return tokens;
 }
 
-int execute(char **args, int *exitStatus) {
-
+void execute(char **args, int *status) {
   if(args[0] == NULL) {
-    return TRUE;
+    return;
   }
 
   if(strcmp(args[0], "cd") == 0) {
@@ -121,34 +114,31 @@ int execute(char **args, int *exitStatus) {
   } else if(strcmp(args[0], "pwd") == 0) {
     return pwdCommand();
   } else if(strcmp(args[0], "echo") == 0) {
-    return echoCommand(args, exitStatus);
+    return echoCommand(args, status);
   } else if(strcmp(args[0], "set") == 0) {
     return setCommand(args);
   } else if(strcmp(args[0], "help") == 0) {
     return helpCommand();
   } else if(strcmp(args[0], "exit") == 0) {
-    return FALSE;
+    exit(EXIT_SUCCESS);
   }
 
-  return launch(args, exitStatus);
+  launch(args, status);
 }
 
-int cdCommand(char **args) {
+void cdCommand(char **args) {
   if(args[1] == NULL) {
     chdir(getenv("HOME"));
   } else {
     chdir(args[1]);
   }
-
-  return TRUE;
 }
 
-int pwdCommand() {
+void pwdCommand() {
   printf("%s\n", getcwd(NULL, 0));
-  return TRUE;
 }
 
-int echoCommand(char **args, int *exitStatus) {
+void echoCommand(char **args, int *status) {
   char *name = NULL;
 
   if(args[1] == NULL) { // echo
@@ -158,7 +148,7 @@ int echoCommand(char **args, int *exitStatus) {
       name = &args[1][1];
 
       if(strcmp(name, "?") == 0) { // echo $?
-        printf("%d\n", WEXITSTATUS(*exitStatus));
+        printf("%d\n", WEXITSTATUS(*status));
       } else if(strcmp(args[1], "$") == 0) { // echo $
         printf("$\n");
       } else if(getenv(name) != NULL) { // echo $name
@@ -170,11 +160,9 @@ int echoCommand(char **args, int *exitStatus) {
       printf("%s\n", args[1]); // echo text
     }
   }
-
-  return TRUE;
 }
 
-int setCommand(char **args) {
+void setCommand(char **args) {
   char *name = NULL;
   char *value = NULL;
   const char *delimeter = "=";
@@ -198,16 +186,14 @@ int setCommand(char **args) {
   } else {
     fprintf(stderr, "unsupported format\n");
   }
-
-  return TRUE;
 }
 
 // TBI
-int helpCommand() {
-  return TRUE;
+void helpCommand() {
+  return;
 }
 
-int launch(char **args, int *exitStatus) {
+void launch(char **args, int *exitStatus) {
   pid_t pid = 0;
 
   if((pid = fork()) == 0) {
@@ -219,7 +205,6 @@ int launch(char **args, int *exitStatus) {
   }
 
   waitpid(pid, exitStatus, 0);
-  return TRUE;
 }
 
 /*
