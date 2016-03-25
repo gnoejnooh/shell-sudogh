@@ -12,6 +12,9 @@
 #define TRUE      1
 #define FALSE     0
 
+#define SUCCESS   0
+#define FAILURE   1
+
 #define STDIN     0
 #define STDOUT    1
 #define STDERR    2
@@ -146,7 +149,7 @@ void execute(char **args, int *status, int debug) {
 }
 
 void cdCommand(char **args, int *status) {
-  *status = EXIT_FAILURE;
+  *status = FAILURE;
 
   if(args[1] == NULL) {
     chdir(getenv("HOME"));
@@ -157,15 +160,15 @@ void cdCommand(char **args, int *status) {
     }
   }
 
-  *status = EXIT_SUCCESS;
+  *status = SUCCESS;
 }
 
 void pwdCommand(int *status) {
-  *status = EXIT_FAILURE;
+  *status = FAILURE;
 
   printf("%s\n", getcwd(NULL, 0));
 
-  *status = EXIT_SUCCESS;
+  *status = SUCCESS;
 }
 
 
@@ -173,7 +176,7 @@ void pwdCommand(int *status) {
 void echoCommand(char **args, int *status) {
   char *name = NULL;
 
-  *status = EXIT_FAILURE;
+  *status = FAILURE;
 
   if(args[1] == NULL) { // echo
     fprintf(stderr, "unsupported format\n");
@@ -196,7 +199,7 @@ void echoCommand(char **args, int *status) {
     }
   }
 
-  *status = EXIT_SUCCESS;
+  *status = SUCCESS;
 }
 
 void setCommand(char **args, int *status) {
@@ -204,7 +207,7 @@ void setCommand(char **args, int *status) {
   char *value = NULL;
   const char *delimeter = "=";
 
-  *status = EXIT_FAILURE;
+  *status = FAILURE;
 
   if(args[3] != NULL && strcmp(args[2], "=") == 0) { // NAME = VALUE format
     name = args[1];
@@ -226,7 +229,7 @@ void setCommand(char **args, int *status) {
     fprintf(stderr, "unsupported format\n");
   }
 
-  *status = EXIT_SUCCESS;
+  *status = SUCCESS;
 }
 
 // TBI
@@ -247,11 +250,11 @@ void helpCommand(int *status) {
   "help: help\n"
   "     Display helpful information about builtin commands.\n");
 
-  *status = EXIT_FAILURE;
+  *status = FAILURE;
 
   printf("%s", USAGE);
   
-  *status = EXIT_SUCCESS;
+  *status = SUCCESS;
 }
 
 void launch(char **args, int *status) {
@@ -262,7 +265,7 @@ void launch(char **args, int *status) {
       fprintf(stderr, "%s: command not found\n", args[0]);
       exit(EXIT_FAILURE);
     }
-    exit(EXIT_SUCCESS);
+    exit(SUCCESS);
   }
 
   waitpid(pid, status, 0);
