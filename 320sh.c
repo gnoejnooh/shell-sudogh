@@ -21,11 +21,11 @@ char * readLine();
 char ** getTokens(char *line);
 void execute(char **args, int *status, int debug);
 
-void cdCommand(char **args);
-void pwdCommand();
+void cdCommand(char **args, int *status);
+void pwdCommand(int *status);
 void echoCommand(char **args, int *status);
-void setCommand(char **args);
-void helpCommand();
+void setCommand(char **args, int *status);
+void helpCommand(int *status);
 
 void launch(char **args, int *status);
 
@@ -129,15 +129,15 @@ void execute(char **args, int *status, int debug) {
     return;
   }
   if(strcmp(args[0], "cd") == 0) {
-    return cdCommand(args);
+    return cdCommand(args, status);
   } else if(strcmp(args[0], "pwd") == 0) {
-    return pwdCommand();
+    return pwdCommand(status);
   } else if(strcmp(args[0], "echo") == 0) {
     return echoCommand(args, status);
   } else if(strcmp(args[0], "set") == 0) {
-    return setCommand(args);
+    return setCommand(args, status);
   } else if(strcmp(args[0], "help") == 0) {
-    return helpCommand();
+    return helpCommand(status);
   } else if(strcmp(args[0], "exit") == 0) {
     exit(EXIT_SUCCESS);
   }
@@ -145,16 +145,20 @@ void execute(char **args, int *status, int debug) {
   launch(args, status);
 }
 
-void cdCommand(char **args) {
+void cdCommand(char **args, int *status) {
   if(args[1] == NULL) {
     chdir(getenv("HOME"));
   } else {
     chdir(args[1]);
   }
+
+  *status = EXIT_SUCCESS;
 }
 
-void pwdCommand() {
+void pwdCommand(int *status) {
   printf("%s\n", getcwd(NULL, 0));
+
+  *status = EXIT_SUCCESS;
 }
 
 
@@ -164,6 +168,7 @@ void echoCommand(char **args, int *status) {
 
   if(args[1] == NULL) { // echo
     fprintf(stderr, "unsupported format\n");
+    *status = EXIT_FAILURE;
   } else {
     if(args[1][0] == '$') {
       name = &args[1][1];
@@ -181,9 +186,11 @@ void echoCommand(char **args, int *status) {
       printf("%s\n", args[1]); // echo text
     }
   }
+
+  *status = EXIT_SUCCESS;
 }
 
-void setCommand(char **args) {
+void setCommand(char **args, int *status) {
   char *name = NULL;
   char *value = NULL;
   const char *delimeter = "=";
@@ -207,10 +214,12 @@ void setCommand(char **args) {
   } else {
     fprintf(stderr, "unsupported format\n");
   }
+
+  *status = EXIT_SUCCESS;
 }
 
 // TBI
-void helpCommand() {
+void helpCommand(int *status) {
   char *USAGE = (
   "320 SHell Builtin Commands\n"
   "cd: cd [dir]\n"
@@ -226,7 +235,8 @@ void helpCommand() {
   "help: help\n"
   "     Display helpful information about builtin commands.\n");
   printf("%s", USAGE);
-  return;
+  
+  *status = EXIT_SUCCESS;
 }
 
 void launch(char **args, int *status) {
