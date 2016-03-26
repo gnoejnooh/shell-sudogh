@@ -12,12 +12,14 @@ typedef struct command {
 
 typedef struct commandList {
 	Command *head;
+	Command *tail;
 	Command *current;
 	int count;
 } CommandList;
 
 void initializeList(CommandList *list);
 void insertCommand(CommandList *list, char *line);
+void constructCommand(CommandList *list, char *line);
 void freeList(CommandList *list);
 
 #endif

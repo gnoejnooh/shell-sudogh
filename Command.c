@@ -12,7 +12,10 @@ void initializeList(CommandList *list) {
 void insertCommand(CommandList *list, char *line) {
 	Command *command = malloc(sizeof(Command));
 
-	line[strlen(line)-1] = '\0';
+	if(line[strlen(line)-1] == '\n') {
+		line[strlen(line)-1] = '\0';
+	}
+	
 	strcpy(command->line, line);
 
 	if(list->count < CAPACITY) {
@@ -41,6 +44,26 @@ void insertCommand(CommandList *list, char *line) {
 		list->tail->next = NULL;
 		free(temp);
 	}
+}
+
+void constructCommand(CommandList *list, char *line) {
+	Command *command = malloc(sizeof(Command));
+
+	strcpy(command->line, line);
+
+	if(list->count == 0) {
+			list->head = command;
+			list->tail = command;
+			list->head->prev = NULL;
+			list->head->next = NULL;
+		} else {
+			command->prev = list->tail;
+			command->next = NULL;
+			list->tail->next = command;
+			list->tail = command;
+		}
+
+		(list->count)++;
 }
 
 void freeList(CommandList *list) {

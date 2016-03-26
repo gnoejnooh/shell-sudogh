@@ -1,0 +1,12 @@
+#ifndef __FILE_MANAGER_H__
+#define __FILE_MANAGER_H__
+
+#include "Command.h"
+
+#define MAX_INPUT		1024
+#define HISTORY_FILE  	".320sh_history"
+
+void importHistory(CommandList *commandList);
+void exportHistory(CommandList *commandList);
+
+#endif

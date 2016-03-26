@@ -5,20 +5,21 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "Command.h"
+#include "FileManager.h"
 
 // Assume no input line will be longer than 1024 bytes
-#define MAX_INPUT 1024
-#define MAX_TOKEN 128
+#define MAX_INPUT     1024
+#define MAX_TOKEN     128
 
-#define TRUE      1
-#define FALSE     0
+#define TRUE          1
+#define FALSE         0
 
-#define SUCCESS   0
-#define FAILURE   1
+#define SUCCESS       0
+#define FAILURE       1
 
-#define STDIN     0
-#define STDOUT    1
-#define STDERR    2
+#define STDIN         0
+#define STDOUT        1
+#define STDERR        2
 
 void printPrompt();
 char * readLine(CommandList *commandList);
@@ -57,6 +58,7 @@ int main(int argc, char ** argv, char **envp) {
   }
 
   initializeList(commandList);
+  importHistory(commandList);
 
   do {
     printPrompt();
@@ -78,6 +80,7 @@ int main(int argc, char ** argv, char **envp) {
     free(tokens);
   } while(run == TRUE);
 
+  exportHistory(commandList);
   freeList(commandList);
   free(commandList);
   return 0;
