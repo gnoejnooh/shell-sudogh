@@ -6,28 +6,47 @@
 void importHistory(CommandList *commandList) {
 	FILE *fp;
 	char *line = malloc(sizeof(char) * MAX_INPUT);
-	
-	if((fp = fopen(HISTORY_FILE, "r")) != NULL) {
-		
-		while(fscanf(fp, "%s", line) != EOF) {
-			constructCommand(commandList, line);
-		}
+	char *path = malloc(sizeof(char) * MAX_PATH);
 
-		fclose(fp);
+	strcpy(path, getenv("HOME"));
+	strcat(path, HISTORY_PATH);
+	
+	fp = fopen(path, "r");
+
+	if(fp == NULL) {
+		return;
 	}
+
+	while(fscanf(fp, "%s", line) != EOF) {
+		constructCommand(commandList, line);
+	}
+
+	free(path);
+	fclose(fp);
 }
 
 void exportHistory(CommandList *commandList) {
 	FILE *fp;
 	Command *cur = commandList->head;
-	
-	if((fp = fopen(HISTORY_FILE, "w")) != NULL) {
-		
-		while(fp != NULL && cur != NULL) {
-			fprintf(fp, "%s\n", cur->line);
-			cur = cur->next;
-		}
+	char *path = malloc(sizeof(char) * MAX_PATH);
 
-		fclose(fp);
+	strcpy(path, getenv("HOME"));
+	strcat(path, HISTORY_PATH);
+
+	printf("%s\n", path);
+
+	fp = fopen(path, "w");
+	
+	if(fp == NULL) {
+		return;
 	}
+		
+	while(cur != NULL) {
+		printf("%s\n", cur->line);
+		fprintf(fp, "%s\n", cur->line);
+		cur = cur->next;
+	}
+
+	free(path);
+	fclose(fp);
 }

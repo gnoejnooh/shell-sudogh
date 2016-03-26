@@ -3,8 +3,9 @@
 
 #include "Command.h"
 
+#define MAX_PATH		1024
 #define MAX_INPUT		1024
-#define HISTORY_FILE  	".320sh_history"
+#define HISTORY_PATH  	"/sudogh/hw4/.320sh_history"
 
 void importHistory(CommandList *commandList);
 void exportHistory(CommandList *commandList);
