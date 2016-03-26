@@ -9,6 +9,7 @@ void initializeList(CommandList *list) {
 	list->count = 0;
 }
 
+/* General purpose */
 void insertCommand(CommandList *list, char *line) {
 	Command *command = malloc(sizeof(Command));
 
@@ -46,6 +47,7 @@ void insertCommand(CommandList *list, char *line) {
 	}
 }
 
+/* File importing purpose only (Insert at tail) */
 void constructCommand(CommandList *list, char *line) {
 	Command *command = malloc(sizeof(Command));
 

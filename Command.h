@@ -18,8 +18,8 @@ typedef struct commandList {
 } CommandList;
 
 void initializeList(CommandList *list);
-void insertCommand(CommandList *list, char *line);
-void constructCommand(CommandList *list, char *line);
+void insertCommand(CommandList *list, char *line); // General purpose
+void constructCommand(CommandList *list, char *line); // File importing purpose only
 void freeList(CommandList *list);
 
 #endif
