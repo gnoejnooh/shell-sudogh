@@ -76,8 +76,8 @@ int main(int argc, char ** argv, char **envp) {
     printPrompt();
     line = readLine(commandList);
     insertCommand(commandList, line);
-    parseLine(line, args1, args2, &mode);
 
+    parseLine(line, args1, args2, &mode);
     tokens = getTokens(args1);
 
     if(debug == TRUE) {
@@ -90,17 +90,18 @@ int main(int argc, char ** argv, char **envp) {
       fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
     }
 
-    mode = RED_O;
+    mode = NORMAL;
     free(line);
     free(tokens);
   } while(run == TRUE);
 
-  free(args1);
-  free(args2);
-
   exportHistory(commandList);
   freeList(commandList);
   free(commandList);
+
+  free(args1);
+  free(args2);
+
   return 0;
 }
 
