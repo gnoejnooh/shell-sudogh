@@ -21,6 +21,13 @@
 #define STDOUT        1
 #define STDERR        2
 
+typedef enum mode {
+  NORMAL,
+  RED_O, // >
+  RED_I, // <
+  PIPE // |
+} Mode;
+
 void printPrompt();
 char * readLine(CommandList *commandList);
 void eraseLine(int count);
@@ -42,6 +49,8 @@ int main(int argc, char ** argv, char **envp) {
 
   char *line = NULL;
   char **tokens = NULL;
+
+  //Mode mode = NORMAL;
   int status = 0;
   int run = TRUE;
   int debug = FALSE;
@@ -76,6 +85,7 @@ int main(int argc, char ** argv, char **envp) {
       fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
     }
 
+    //mode = RED_O;
     free(line);
     free(tokens);
   } while(run == TRUE);
@@ -117,6 +127,11 @@ char * readLine(CommandList *commandList) {
       cursor++;
       count++;
     } else if(last_char != 0 && (last_char == 127 || last_char == 8)) { // Backspace
+
+      if(count == 0) {
+        continue;
+      }
+      
       write(STDOUT, "\b \b", 3);
       cursor--;
       count--;
