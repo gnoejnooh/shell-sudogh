@@ -31,6 +31,7 @@ typedef enum mode {
 void printPrompt();
 char * readLine(CommandList *commandList);
 void eraseLine(int count);
+void parseLine(char *line, char *args1, char *args2, Mode *mode);
 char ** getTokens(char *line);
 void execute(char **args, int *status, int *run);
 
@@ -49,8 +50,10 @@ int main(int argc, char ** argv, char **envp) {
 
   char *line = NULL;
   char **tokens = NULL;
+  char *args1 = malloc(sizeof(char) * MAX_TOKEN);
+  char *args2 = malloc(sizeof(char) * MAX_TOKEN);
 
-  //Mode mode = NORMAL;
+  Mode mode = NORMAL;
   int status = 0;
   int run = TRUE;
   int debug = FALSE;
@@ -73,7 +76,9 @@ int main(int argc, char ** argv, char **envp) {
     printPrompt();
     line = readLine(commandList);
     insertCommand(commandList, line);
-    tokens = getTokens(line);
+    parseLine(line, args1, args2, &mode);
+
+    tokens = getTokens(args1);
 
     if(debug == TRUE) {
       fprintf(stderr, "RUNNING: %s\n", *tokens);  
@@ -85,10 +90,13 @@ int main(int argc, char ** argv, char **envp) {
       fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
     }
 
-    //mode = RED_O;
+    mode = RED_O;
     free(line);
     free(tokens);
   } while(run == TRUE);
+
+  free(args1);
+  free(args2);
 
   exportHistory(commandList);
   freeList(commandList);
@@ -131,7 +139,6 @@ char * readLine(CommandList *commandList) {
       if(count == 0) {
         continue;
       }
-      
       write(STDOUT, "\b \b", 3);
       cursor--;
       count--;
@@ -224,6 +231,38 @@ void eraseLine(int count) {
   for(i=0; i<count; i++) {
     write(STDOUT, "\b", 1);
   }
+}
+
+void parseLine(char *line, char *args1, char *args2, Mode *mode) {
+  int i = 0;
+  *mode = NORMAL;
+
+  for(i=0; i<strlen(line); i++) {
+    switch(line[i]) {
+    case '>':
+      line[i] = '\0';
+      strcpy(args1, line);
+      strcpy(args2, &line[i+1]);
+      *mode = RED_O;
+      return;
+    case '<':
+      line[i] = '\0';
+      strcpy(args1, line);
+      strcpy(args2, &line[i+1]);
+      *mode = RED_I;
+      return;
+    case '|':
+      line[i] = '\0';
+      strcpy(args1, line);
+      strcpy(args2, &line[i+1]);
+      *mode = PIPE;
+      return;
+    default:
+      continue;
+    }
+  }
+
+  strcpy(args1, line);
 }
 
 char ** getTokens(char *line) {
