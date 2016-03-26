@@ -22,6 +22,7 @@
 
 void printPrompt();
 char * readLine(CommandList *commandList);
+void eraseLine(int count);
 char ** getTokens(char *line);
 void execute(char **args, int *status, int *run);
 
@@ -61,7 +62,6 @@ int main(int argc, char ** argv, char **envp) {
     printPrompt();
     line = readLine(commandList);
     insertCommand(commandList, line);
-
     tokens = getTokens(line);
 
     if(debug == TRUE) {
@@ -97,11 +97,12 @@ void printPrompt() {
 
 char * readLine(CommandList *commandList) {
 
+  Command *cur = NULL;
   char *line = malloc(sizeof(char) * MAX_INPUT);
   char *cursor = line;
+
   int count = 0;
   int last_char = 0;
-  int i = 0;
 
   while(count < MAX_INPUT && last_char != '\n') {
 
@@ -123,68 +124,50 @@ char * readLine(CommandList *commandList) {
       
       switch(last_char) {
       case 'A': // UP KEY
-
-        for(i=0; i<count; i++) {
-          write(STDOUT, "\b", 1);
-        }
-        for(i=0; i<count; i++) {
-          write(STDOUT, " ", 1);
-        }
-        for(i=0; i<count; i++) {
-          write(STDOUT, "\b", 1);
-        }
-
-        count = -1;
-        *line = '\0';
+        eraseLine(count);
+        count = 0;
         cursor = line;
+
+        if(cur == NULL) {
+          cur = commandList->head;
+        } else if(cur->next != NULL) {
+          cur = cur->next;
+        }
+
+        if(cur != NULL) {
+          strcpy(line, cur->line);
+          write(STDOUT, line, strlen(line));
+          count += strlen(line);
+          cursor += strlen(line);
+        }
 
         break;
+
       case 'B': // DOWN KEY
-
-        for(i=0; i<count; i++) {
-          write(STDOUT, "\b", 1);
-        }
-        for(i=0; i<count; i++) {
-          write(STDOUT, " ", 1);
-        }
-        for(i=0; i<count; i++) {
-          write(STDOUT, "\b", 1);
-        }
-
-        count = -1;
-        *line = '\0';
+        eraseLine(count);
+        count = 0;
         cursor = line;
+
+        if(cur != NULL && cur->prev != NULL) {
+          cur = cur->prev;
+        }
+
+        if(cur != NULL) {
+          strcpy(line, cur->line);
+          write(STDOUT, line, strlen(line));
+          count += strlen(line);
+          cursor += strlen(line);
+        }
+        
         break;
       case 'C': // RIGHT KEY
-
-        for(i=0; i<count; i++) {
-          write(STDOUT, "\b", 1);
-        }
-        for(i=0; i<count; i++) {
-          write(STDOUT, " ", 1);
-        }
-        for(i=0; i<count; i++) {
-          write(STDOUT, "\b", 1);
-        }
-
-        count = -1;
-        *line = '\0';
+        eraseLine(count);
+        count = 0;
         cursor = line;
         break;
       case 'D': // LEFT KEY
-
-        for(i=0; i<count; i++) {
-          write(STDOUT, "\b", 1);
-        }
-        for(i=0; i<count; i++) {
-          write(STDOUT, " ", 1);
-        }
-        for(i=0; i<count; i++) {
-          write(STDOUT, "\b", 1);
-        }
-
-        count = -1;
-        *line = '\0';
+        eraseLine(count);
+        count = 0;
         cursor = line;
         break;
       default:
@@ -195,6 +178,7 @@ char * readLine(CommandList *commandList) {
       cursor++;
       count++;
     }
+
     /*
     else if(strcmp(cursor, "\027[C")) {
       write(STDOUT, " ", 1);
@@ -208,6 +192,20 @@ char * readLine(CommandList *commandList) {
 
   *cursor = '\0';
   return line;
+}
+
+void eraseLine(int count) {
+  int i = 0;
+
+  for(i=0; i<count; i++) {
+    write(STDOUT, "\b", 1);
+  }
+  for(i=0; i<count; i++) {
+    write(STDOUT, " ", 1);
+  }
+  for(i=0; i<count; i++) {
+    write(STDOUT, "\b", 1);
+  }
 }
 
 char ** getTokens(char *line) {
