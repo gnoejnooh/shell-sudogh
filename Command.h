@@ -4,6 +4,13 @@
 #define MAX_INPUT 1024
 #define CAPACITY 	50
 
+typedef enum mode {
+  NORMAL = 0,
+  RED_O, // >
+  RED_I, // <
+  PIPE // |
+} Mode;
+
 typedef struct command {
 	char line[MAX_INPUT];
 	struct command *prev;
@@ -13,13 +20,29 @@ typedef struct command {
 typedef struct commandList {
 	Command *head;
 	Command *tail;
-	Command *current;
 	int count;
 } CommandList;
 
-void initializeList(CommandList *list);
+typedef struct work {
+  char args[MAX_INPUT];
+  Mode mode;
+  struct work *prev;
+  struct work *next;
+} Work;
+
+typedef struct workList {
+	Work *head;
+	Work *tail;
+	int count;
+} WorkList;
+
+void initializeCommandList(CommandList *list);
 void insertCommand(CommandList *list, char *line); // General purpose
 void constructCommand(CommandList *list, char *line); // File importing purpose only
-void freeList(CommandList *list);
+void freeCommandList(CommandList *list);
+
+void initializeWorkList(WorkList *list);
+void insertWork(WorkList *list, char *args, Mode mode);
+void freeWorkList(WorkList *list);
 
 #endif

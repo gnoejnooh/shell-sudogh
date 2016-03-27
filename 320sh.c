@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "Command.h"
@@ -21,19 +22,13 @@
 #define STDOUT        1
 #define STDERR        2
 
-typedef enum mode {
-  NORMAL,
-  RED_O, // >
-  RED_I, // <
-  PIPE // |
-} Mode;
-
 void printPrompt();
 char * readLine(CommandList *commandList);
 void eraseLine(int count);
 void parseLine(char *line, char *args1, char *args2, Mode *mode);
 char ** getTokens(char *line);
-void execute(char **args, int *status, int *run);
+void executeLine(char *line, Mode *mode, int *run, int debug); // For piping and redirection
+void execute(char **args, int *status, int *run); // For single process
 
 void cdCommand(char **args, int *status);
 void pwdCommand(int *status);
@@ -49,12 +44,8 @@ int main(int argc, char ** argv, char **envp) {
   CommandList *commandList = malloc(sizeof(CommandList));
 
   char *line = NULL;
-  char **tokens = NULL;
-  char *args1 = malloc(sizeof(char) * MAX_TOKEN);
-  char *args2 = malloc(sizeof(char) * MAX_TOKEN);
 
   Mode mode = NORMAL;
-  int status = 0;
   int run = TRUE;
   int debug = FALSE;
   int c = 0;
@@ -69,38 +60,24 @@ int main(int argc, char ** argv, char **envp) {
       }
   }
 
-  initializeList(commandList);
+  initializeCommandList(commandList);
   importHistory(commandList);
 
   do {
     printPrompt();
-    line = readLine(commandList);
+    line = readLine(commandList);\
     insertCommand(commandList, line);
 
-    parseLine(line, args1, args2, &mode);
-    tokens = getTokens(args1);
-
-    if(debug == TRUE) {
-      fprintf(stderr, "RUNNING: %s\n", *tokens);  
-    }
-
-    execute(tokens, &status, &run);
-
-    if(debug == TRUE) {
-      fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
-    }
+    executeLine(line, &mode, &run, debug);
 
     mode = NORMAL;
     free(line);
-    free(tokens);
+
   } while(run == TRUE);
 
   exportHistory(commandList);
-  freeList(commandList);
+  freeCommandList(commandList);
   free(commandList);
-
-  free(args1);
-  free(args2);
 
   return 0;
 }
@@ -243,18 +220,21 @@ void parseLine(char *line, char *args1, char *args2, Mode *mode) {
     case '>':
       line[i] = '\0';
       strcpy(args1, line);
+      while(line[i+1] == ' ') i++;
       strcpy(args2, &line[i+1]);
       *mode = RED_O;
       return;
     case '<':
       line[i] = '\0';
       strcpy(args1, line);
+      while(line[i+1] == ' ') i++;
       strcpy(args2, &line[i+1]);
       *mode = RED_I;
       return;
     case '|':
       line[i] = '\0';
       strcpy(args1, line);
+      while(line[i+1] == ' ') i++;
       strcpy(args2, &line[i+1]);
       *mode = PIPE;
       return;
@@ -282,6 +262,83 @@ char ** getTokens(char *line) {
 
   tokens[pos] = NULL;
   return tokens;
+}
+
+void executeLine(char *line, Mode *mode, int *run, int debug) {
+
+  char *args1 = malloc(sizeof(char) * MAX_TOKEN);
+  char *args2 = malloc(sizeof(char) * MAX_TOKEN);
+
+  char **tokens = NULL;
+  int status = 0;
+
+  WorkList *workList = malloc(sizeof(WorkList));
+  Work *cur = NULL;
+
+  int pid = 0;
+  int fd = 0;
+
+  initializeWorkList(workList);
+
+  do {
+    parseLine(line, args1, args2, mode);
+    insertWork(workList, args1, *mode);
+    strcpy(line, args2);
+  } while(*mode != 0);
+
+  cur = workList->head;
+
+  while(cur == workList->head) {
+
+    if(debug == TRUE) {
+      fprintf(stderr, "RUNNING: %s\n", *tokens);  
+    }
+
+    tokens = getTokens(cur->args);
+
+    switch(cur->mode) {
+    case NORMAL:
+      execute(tokens, &status, run);
+      break;
+    case RED_O: // >
+      if((pid = fork()) == 0) {
+        if((fd = open(cur->next->args, O_WRONLY | O_CREAT)) != -1) {
+          dup2(fd, STDOUT);
+          execute(tokens, &status, run);
+        }
+        exit(EXIT_SUCCESS);
+      }
+      waitpid(pid, &status, 0);
+      break;
+    case RED_I:
+      if((pid = fork()) == 0) {
+        if((fd = open(cur->next->args, O_RDONLY)) != -1) {
+          dup2(fd, STDIN);
+          execute(tokens, &status, run);
+        }
+        exit(EXIT_SUCCESS);
+      }
+      waitpid(pid, &status, 0);
+      break;
+    case PIPE:
+      *mode = NORMAL;
+      break;
+    default:
+      break;
+    }
+
+    if(debug == TRUE) {
+      fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
+    }
+
+    free(tokens);
+    cur = cur->next;
+  }
+
+  free(args1);
+  free(args2);
+  freeWorkList(workList);
+  free(workList);
 }
 
 void execute(char **args, int *status, int *run) {

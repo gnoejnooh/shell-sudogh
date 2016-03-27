@@ -33,8 +33,6 @@ void exportHistory(CommandList *commandList) {
 	strcpy(path, getenv("HOME"));
 	strcat(path, HISTORY_PATH);
 
-	printf("%s\n", path);
-
 	fp = fopen(path, "w");
 	
 	if(fp == NULL) {
@@ -42,7 +40,6 @@ void exportHistory(CommandList *commandList) {
 	}
 		
 	while(cur != NULL) {
-		printf("%s\n", cur->line);
 		fprintf(fp, "%s\n", cur->line);
 		cur = cur->next;
 	}
