@@ -1,11 +1,12 @@
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
 
-#define MAX_INPUT 1024
-#define CAPACITY 	50
+#define MAX_INPUT 		1024
+#define MAX_FILE_LEN	256
+#define CAPACITY 			50
 
 typedef enum mode {
-  NORMAL = 0,
+  NORMAL,
   RED_O, // >
   RED_I, // <
   PIPE // |

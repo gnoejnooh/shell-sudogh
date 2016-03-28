@@ -27,8 +27,9 @@ char * readLine(CommandList *commandList);
 void eraseLine(int count);
 void parseLine(char *line, char *args1, char *args2, Mode *mode);
 char ** getTokens(char *line);
-void executeLine(char *line, Mode *mode, int *run, int debug); // For piping and redirection
-void execute(char **args, int *status, int *run); // For single process
+void executeLine(char *line, int *run, int debug);
+void constructOrder(Work *cur, int *run, int debug); // For piping and redirection
+void execute(char **args, int *status, int *run); // For single command
 
 void cdCommand(char **args, int *status);
 void pwdCommand(int *status);
@@ -45,7 +46,6 @@ int main(int argc, char ** argv, char **envp) {
 
   char *line = NULL;
 
-  Mode mode = NORMAL;
   int run = TRUE;
   int debug = FALSE;
   int c = 0;
@@ -68,9 +68,8 @@ int main(int argc, char ** argv, char **envp) {
     line = readLine(commandList);\
     insertCommand(commandList, line);
 
-    executeLine(line, &mode, &run, debug);
+    executeLine(line, &run, debug);
 
-    mode = NORMAL;
     free(line);
 
   } while(run == TRUE);
@@ -264,81 +263,79 @@ char ** getTokens(char *line) {
   return tokens;
 }
 
-void executeLine(char *line, Mode *mode, int *run, int debug) {
-
-  char *args1 = malloc(sizeof(char) * MAX_TOKEN);
-  char *args2 = malloc(sizeof(char) * MAX_TOKEN);
-
-  char **tokens = NULL;
-  int status = 0;
+void executeLine(char *line, int *run, int debug) {
 
   WorkList *workList = malloc(sizeof(WorkList));
   Work *cur = NULL;
 
-  int pid = 0;
-  int fd = 0;
+  char *args1 = malloc(sizeof(char) * MAX_TOKEN);
+  char *args2 = malloc(sizeof(char) * MAX_TOKEN);
+
+  Mode mode = NORMAL;
 
   initializeWorkList(workList);
 
   do {
-    parseLine(line, args1, args2, mode);
-    insertWork(workList, args1, *mode);
+    parseLine(line, args1, args2, &mode);
+    insertWork(workList, args1, mode);
     strcpy(line, args2);
-  } while(*mode != 0);
+  } while(mode != NORMAL);
 
   cur = workList->head;
 
-  while(cur == workList->head) {
-
-    if(debug == TRUE) {
-      fprintf(stderr, "RUNNING: %s\n", *tokens);  
-    }
-
-    tokens = getTokens(cur->args);
-
-    switch(cur->mode) {
-    case NORMAL:
-      execute(tokens, &status, run);
-      break;
-    case RED_O: // >
-      if((pid = fork()) == 0) {
-        if((fd = open(cur->next->args, O_WRONLY | O_CREAT)) != -1) {
-          dup2(fd, STDOUT);
-          execute(tokens, &status, run);
-        }
-        exit(EXIT_SUCCESS);
-      }
-      waitpid(pid, &status, 0);
-      break;
-    case RED_I:
-      if((pid = fork()) == 0) {
-        if((fd = open(cur->next->args, O_RDONLY)) != -1) {
-          dup2(fd, STDIN);
-          execute(tokens, &status, run);
-        }
-        exit(EXIT_SUCCESS);
-      }
-      waitpid(pid, &status, 0);
-      break;
-    case PIPE:
-      *mode = NORMAL;
-      break;
-    default:
-      break;
-    }
-
-    if(debug == TRUE) {
-      fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
-    }
-
-    free(tokens);
-    cur = cur->next;
-  }
+  constructOrder(cur, run, debug);
 
   free(args1);
   free(args2);
   freeWorkList(workList);
   free(workList);
+}
+
+void constructOrder(Work *cur, int *run, int debug) {
+  int pid = 0;
+  int fd = 0;
+  int status = 0;
+  char **tokens = getTokens(cur->args);
+
+  if(debug == TRUE) {
+    fprintf(stderr, "RUNNING: %s\n", *tokens);  
+  }
+
+  switch(cur->mode) {
+  case NORMAL:
+    execute(tokens, &status, run);
+    break;
+  case RED_O: // >
+    if((pid = fork()) == 0) {
+      if((fd = open(cur->next->args, O_WRONLY | O_CREAT | O_TRUNC)) != -1) {
+        dup2(fd, STDOUT);
+        execute(tokens, &status, run);
+      }
+      exit(EXIT_SUCCESS);
+    }
+    waitpid(pid, &status, 0);
+    break;
+  case RED_I: // <
+    if((pid = fork()) == 0) {
+      if((fd = open(cur->next->args, O_RDONLY)) != -1) {
+        dup2(fd, STDIN);
+        execute(tokens, &status, run);
+      }
+      exit(EXIT_SUCCESS);
+    }
+    waitpid(pid, &status, 0);
+    break;
+  case PIPE:
+    break;
+  default:
+    break;
+  }
+
+  if(debug == TRUE) {
+    fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
+  }
+
+  free(tokens);
 }
 
 void execute(char **args, int *status, int *run) {
