@@ -24,8 +24,9 @@
 
 void printPrompt();
 char * readLine(CommandList *commandList);
-void insertChar(char *string, int c, int pos);
-void eraseLine(int count);
+void insertChar(char *string, int len, int c, int pos);
+void deleteChar(char *string, int len, int pos);
+void eraseLine(int pos, int count);
 void parseLine(char *line, char *args1, char *args2, Mode *mode);
 char ** getTokens(char *line);
 void executeLine(char *line, int *run, int debug);
@@ -119,12 +120,26 @@ char * readLine(CommandList *commandList) {
       write(STDOUT, "^c", 2);
     } else if(last_char != 0 && (last_char == 127 || last_char == 8)) { // Backspace
 
-      if(count == 0) {
+      int i = 0;
+      int temp = 0;
+      
+      if(pos == 0) {
         continue;
       }
-      write(STDOUT, "\b \b", 3);
+
+      deleteChar(line, count, pos-1);
+      eraseLine(pos, count);
+      temp = count - pos;
+      count = 0;
+
+      write(STDOUT, line, strlen(line));
+      count += strlen(line);
       pos--;
-      count--;
+
+      for(i=0; i<temp; i++) {
+        write(STDOUT, "\033[1D", 4);
+      }
+
     } else if(last_char == 27) {
       read(STDIN, &c, 1);
       read(STDIN, &c, 1);
@@ -132,7 +147,7 @@ char * readLine(CommandList *commandList) {
       
       switch(last_char) {
       case 'A': // UP KEY
-        eraseLine(count);
+        eraseLine(pos, count);
         count = 0;
         pos = 0;
 
@@ -152,7 +167,7 @@ char * readLine(CommandList *commandList) {
         break;
 
       case 'B': // DOWN KEY
-        eraseLine(count);
+        eraseLine(pos, count);
         count = 0;
         pos = 0;
 
@@ -193,12 +208,20 @@ char * readLine(CommandList *commandList) {
       if(pos == count) {
         write(STDOUT, &last_char, 1);   
       } else {
+        int i = 0;
+
         write(STDOUT, &last_char, 1);
         write(STDOUT, remainLine, strlen(remainLine));
+
+        for(i=pos; i<count; i++) {
+          write(STDOUT, "\033[1D", 4);
+        }
       }
-      insertChar(line, last_char, pos);
+
+      insertChar(line, count, last_char, pos);
       pos++;
       count++;
+      remainLine = &line[pos];
     }
 
     /*
@@ -215,24 +238,36 @@ char * readLine(CommandList *commandList) {
   return line;
 }
 
-void insertChar(char *string, int c, int pos) {
+void insertChar(char *string, int len, int c, int pos) {
   int i = 0;
 
   if(string == NULL) {
     return;
   }
 
-  for(i = strlen(string); i >= pos; i--) {
+  for(i = len; i >= pos; i--) {
     string[i+1] = string[i];
   }
 
   string[pos] = c;
 }
 
-void eraseLine(int count) {
+void deleteChar(char *string, int len, int pos) {
   int i = 0;
 
-  for(i=0; i<count; i++) {
+  if(string == NULL) {
+    return;
+  }
+
+  for(i=pos; i<len; i++) {
+    string[i] = string[i+1];
+  }
+}
+
+void eraseLine(int pos, int count) {
+  int i = 0;
+
+  for(i=0; i<pos; i++) {
     write(STDOUT, "\b", 1);
   }
   for(i=0; i<count; i++) {
