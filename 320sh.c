@@ -52,7 +52,7 @@ int main(int argc, char ** argv, char **envp) {
   int debug = FALSE;
   int c = 0;
 
-  while((c = getopt(argc, argv, "d")) != -1){
+  while((c = getopt(argc, argv, "d")) != -1) {
     switch(c) {
       case 'd':
         debug = TRUE;
