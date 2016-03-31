@@ -24,6 +24,7 @@
 
 void printPrompt();
 char * readLine(CommandList *commandList);
+void insertChar(char *string, int c, int pos);
 void eraseLine(int count);
 void parseLine(char *line, char *args1, char *args2, Mode *mode);
 char ** getTokens(char *line);
@@ -65,7 +66,7 @@ int main(int argc, char ** argv, char **envp) {
 
   do {
     printPrompt();
-    line = readLine(commandList);\
+    line = readLine(commandList);
     insertCommand(commandList, line);
 
     executeLine(line, &run, debug);
@@ -97,44 +98,43 @@ char * readLine(CommandList *commandList) {
 
   Command *cur = NULL;
   char *line = malloc(sizeof(char) * MAX_INPUT);
-  char *screen = malloc(sizeof(char) * MAX_INPUT);
-  char *cursor = line;
-  int screenCursor = 0;
-  int screenEnd = 0;
-  char *start = cursor;
-  char *end = cursor;
+  char *remainLine = NULL;
+  int c = 0;
+  int pos = 0;
+
   int count = 0;
   int last_char = 0;
 
-  while(count < MAX_INPUT && last_char != '\n') {
+  line[0] = '\0';
 
-    read(STDIN, cursor, 1);
-    last_char = *cursor;
+  while(count < MAX_INPUT) {
+
+    read(STDIN, &c, 1);
+    last_char = c;
+
     if(last_char == '\n') {
-      continue;
-    }
-    if(last_char == 3) { // Ctrl + C
+      write(STDOUT, "\n", 1);
+      break;
+    } if(last_char == 3) { // Ctrl + C
       write(STDOUT, "^c", 2);
-      cursor++;
-      count++;
     } else if(last_char != 0 && (last_char == 127 || last_char == 8)) { // Backspace
 
       if(count == 0) {
         continue;
       }
       write(STDOUT, "\b \b", 3);
-      cursor--;
+      pos--;
       count--;
     } else if(last_char == 27) {
-      read(STDIN, cursor, 1);
-      read(STDIN, cursor, 1);
-      last_char = *cursor;
+      read(STDIN, &c, 1);
+      read(STDIN, &c, 1);
+      last_char = c;
       
       switch(last_char) {
       case 'A': // UP KEY
         eraseLine(count);
         count = 0;
-        cursor = line;
+        pos = 0;
 
         if(cur == NULL) {
           cur = commandList->head;
@@ -144,10 +144,9 @@ char * readLine(CommandList *commandList) {
 
         if(cur != NULL) {
           strcpy(line, cur->line);
-          strcpy(screen, cur->line);
           write(STDOUT, line, strlen(line));
           count += strlen(line);
-          cursor += strlen(line);
+          pos += strlen(line);
         }
 
         break;
@@ -155,7 +154,7 @@ char * readLine(CommandList *commandList) {
       case 'B': // DOWN KEY
         eraseLine(count);
         count = 0;
-        cursor = line;
+        pos = 0;
 
         if(cur != NULL && cur->prev != NULL) {
           cur = cur->prev;
@@ -163,71 +162,74 @@ char * readLine(CommandList *commandList) {
 
         if(cur != NULL) {
           strcpy(line, cur->line);
-          strcpy(screen, cur->line);
           write(STDOUT, line, strlen(line));
           count += strlen(line);
-          cursor += strlen(line);
+          pos += strlen(line);
         }
         
         break;
       case 'C': // RIGHT KEY
-        if(last_char == *end) {
+        if(pos == count) {
           continue;
         }
+
         write(STDOUT, "\033[1C", 4);
-        cursor++;
-        screenCursor++;
+        pos++;
+        remainLine = &line[pos];
         break;
       case 'D': // LEFT KEY
-        if(last_char == *start) {
+        if(pos == 0) {
           continue;
         }
+        
         write(STDOUT, "\033[1D", 4);
-        cursor--;
-        screenCursor--;
+        pos--;
+        remainLine = &line[pos];
         break;
       default:
-        break;  
+        break;
       }
     } else {
-      if(screenCursor < screenEnd) {
-        char* q;
-        int i;
-        for(q = &screen[screenCursor], i = screenEnd - screenCursor; --i >= 0;) {
-          q[i + 1] = q[i];
-        }
-        memcpy(&screen[screenCursor], &last_char, 1);
-        screen[screenEnd + 1] = '\0';
+      if(pos == count) {
+        write(STDOUT, &last_char, 1);   
       } else {
-        screen[screenCursor] = *cursor;
+        write(STDOUT, &last_char, 1);
+        write(STDOUT, remainLine, strlen(remainLine));
       }
-      if(cursor < end) {
-        write(STDOUT, "\r", 1);
-        printPrompt();
-        strcpy(line, screen);
-        write(STDOUT, line, strlen(line));
-        for(int i = screenEnd - screenCursor; --i >= 0;) {
-          write(STDOUT, "\033[1D", 4);
-        }
-      } else {
-        write(STDOUT, &last_char, 1); 
-      }
-      cursor++;
-      screenCursor++;
-      screenEnd++;
+      insertChar(line, last_char, pos);
+      pos++;
       count++;
-      end++;
     }
+
+    /*
+    else if(strcmp(ursor, "\027[C")) {
+      write(STDOUT, " ", 1);
+      cursor += 2;
+    } else if(strcmp(cursor, "\027[D")) {
+      write(STDOUT, "", 1);
+      cursor += 2;
+    } 
+    */
   }
-  write(STDOUT, "\n", 1);
-  *cursor = '\0';
-  return screen;
+
+  return line;
+}
+
+void insertChar(char *string, int c, int pos) {
+  int i = 0;
+
+  if(string == NULL) {
+    return;
+  }
+
+  for(i = strlen(string); i >= pos; i--) {
+    string[i+1] = string[i];
+  }
+
+  string[pos] = c;
 }
 
 void eraseLine(int count) {
-	write(STDOUT, "\r", 1);
-  printPrompt();
-  /*
   int i = 0;
 
   for(i=0; i<count; i++) {
@@ -239,7 +241,6 @@ void eraseLine(int count) {
   for(i=0; i<count; i++) {
     write(STDOUT, "\b", 1);
   }
-  */
 }
 
 void parseLine(char *line, char *args1, char *args2, Mode *mode) {
@@ -324,10 +325,9 @@ void executeLine(char *line, int *run, int debug) {
 }
 
 void constructOrder(Work *cur, int *run, int debug) {
-  int pid, pid2 = 0;
+  int pid = 0;
   int fd = 0;
   int status = 0;
-  int pip[2];
   char **tokens = getTokens(cur->args);
 
   if(debug == TRUE) {
@@ -359,30 +359,6 @@ void constructOrder(Work *cur, int *run, int debug) {
     waitpid(pid, &status, 0);
     break;
   case PIPE:
-  	pipe(pip);
-    if((pid = fork()) < 0) {
-      printf("\nerror\n");
-    } else if(pid == 0) {
-      printf("\nRUNNING PIPE:%s\n", tokens[0]);
-      close(pip[0]);
-      dup2(pip[1], STDOUT);
-      close(pip[1]);
-      execvp(tokens[0], tokens);
-    } else {
-      waitpid(pid, &status, 0);
-      if((pid2 = fork()) < 0) {
-        printf("\nerror\n");
-      } else if(pid2 == 0) {
-        printf("\nRUNNING PIPE2:%s\n", tokens[1]);
-        close(pip[1]);
-        dup2(pip[0], STDIN);
-        close(pip[0]);
-        execvp(tokens[0], tokens);
-      } else {
-        close(pip[0]);
-        close(pip[1]);
-      }
-    }
     break;
   default:
     break;
