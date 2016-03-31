@@ -362,6 +362,7 @@ void executeLine(char *line, int *run, int debug) {
 void constructOrder(Work *cur, int *run, int debug) {
   int pid = 0;
   int fd = 0;
+  int pipefd[2][2];
   int status = 0;
   char **tokens = getTokens(cur->args);
 
@@ -393,7 +394,43 @@ void constructOrder(Work *cur, int *run, int debug) {
     }
     waitpid(pid, &status, 0);
     break;
-  case PIPE:
+  case PIPE: 
+    pipe(pipefd[0]);
+    pipe(pipefd[1]);
+    if((pid = fork()) == 0) {
+      dup2(pipefd[0][1], STDOUT);
+      close(pipefd[0][0]);
+      execvp(tokens[0], tokens);
+      //execute(tokens, &status, run);
+    }
+    close(pipefd[0][1]);
+    waitpid(pid, NULL, 0);
+    tokens = getTokens(cur->next->args);
+    if((pid = fork()) == 0) {
+      dup2(pipefd[0][0], STDIN);
+      close(pipefd[0][1]);
+      dup2(pipefd[1][1], STDOUT);
+      close(pipefd[1][0]);
+      execvp(tokens[0], tokens);
+    }
+    close(pipefd[0][0]);
+    close(pipefd[0][1]);
+    waitpid(pid, NULL, 0);
+    
+    if((pid = fork()) == 0) {
+      dup2(pipefd[1][0], STDIN);
+      close(pipefd[1][1]);
+      execvp(tokens[0], tokens);
+    }
+    close(pipefd[1][0]);
+    close(pipefd[1][1]);
+    waitpid(pid, NULL, 0);
+
+    close(pipefd[0][0]);
+    close(pipefd[0][1]);
+    close(pipefd[1][0]);
+    close(pipefd[1][1]);
+    break;
     break;
   default:
     break;
