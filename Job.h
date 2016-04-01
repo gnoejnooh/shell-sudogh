@@ -15,7 +15,7 @@ typedef struct job {
 	int pid;
 	int jid;
 
-	JobState state;
+	JobState jobState;
 
 	struct job *prev;
 	struct job *next;
@@ -26,10 +26,10 @@ typedef struct jobList {
  	Job *tail;
  	
  	int count;
-};
+} JobList;
 
 void initializeJobList(JobList *list);
-void insertJob(JobList *list, char *args, int pid, State state);
+void insertJob(JobList *list, char *args, int pid, JobState state);
 void freeJobList(JobList *list);
 
 #endif

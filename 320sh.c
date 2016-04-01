@@ -121,7 +121,9 @@ char * readLine(CommandList *commandList) {
     if(last_char == '\n') {
       write(STDOUT, "\n", 1);
       break;
-    } if(last_char == 3) { // Ctrl + C
+    } else if(last_char == '\t') {
+      continue;
+    } else if(last_char == 3) { // Ctrl + C
       write(STDOUT, "^c", 2);
     } else if(last_char != 0 && (last_char == 127 || last_char == 8)) { // Backspace
 
