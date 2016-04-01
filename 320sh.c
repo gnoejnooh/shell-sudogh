@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "Command.h"
+#include "Job.h"
 #include "FileManager.h"
 
 // Assume no input line will be longer than 1024 bytes
@@ -29,8 +30,8 @@ void deleteChar(char *string, int len, int pos);
 void eraseLine(int pos, int count);
 void parseLine(char *line, char *args1, char *args2, Mode *mode);
 char ** getTokens(char *line);
-void executeLine(char *line, int *run, int debug);
-void constructOrder(Work *cur, int workCount, int *run, int debug); // For piping and redirection
+void executeLine(char *line, JobList *jobList, int *run, int debug);
+void constructOrder(Work *cur, int workCount, char *line, JobList *jobList, int *run, int debug); // For piping and redirection
 void executeWork(WorkUnit *cur, int workUnitCount, int *status, int *run, Mode mode);
 void execute(char **args, int *status, int *run, Mode mode); // For single command
 
@@ -46,6 +47,7 @@ void launch(char **args, int *status, Mode mode);
 int main(int argc, char ** argv, char **envp) {
 
   CommandList *commandList = malloc(sizeof(CommandList));
+  JobList *jobList = malloc(sizeof(JobList));
 
   char *line = NULL;
 
@@ -71,7 +73,7 @@ int main(int argc, char ** argv, char **envp) {
     line = readLine(commandList);
     insertCommand(commandList, line);
 
-    executeLine(line, &run, debug);
+    executeLine(line, jobList, &run, debug);
 
     free(line);
 
@@ -79,7 +81,9 @@ int main(int argc, char ** argv, char **envp) {
 
   exportHistory(commandList);
   freeCommandList(commandList);
+  freeJobList(jobList);
   free(commandList);
+  free(jobList);
 
   return 0;
 }
@@ -318,7 +322,7 @@ char ** getTokens(char *line) {
   return tokens;
 }
 
-void executeLine(char *line, int *run, int debug) {
+void executeLine(char *line, JobList *jobList, int *run, int debug) {
 
   WorkList *workList = malloc(sizeof(WorkList));
   Work *cur = NULL;
@@ -338,7 +342,7 @@ void executeLine(char *line, int *run, int debug) {
 
   cur = workList->head;
 
-  constructOrder(cur, workList->count, run, debug);
+  constructOrder(cur, workList->count, line, jobList, run, debug);
 
   free(args1);
   free(args2);
@@ -346,7 +350,7 @@ void executeLine(char *line, int *run, int debug) {
   free(workList);
 }
 
-void constructOrder(Work *cur, int workCount, int *run, int debug) {
+void constructOrder(Work *cur, int workCount, char *line, JobList *jobList, int *run, int debug) {
   
   char **tokens = NULL;
 
