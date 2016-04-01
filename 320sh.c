@@ -231,16 +231,6 @@ char * readLine(CommandList *commandList) {
       count++;
       remainLine = &line[pos];
     }
-
-    /*
-    else if(strcmp(ursor, "\027[C")) {
-      write(STDOUT, " ", 1);
-      cursor += 2;
-    } else if(strcmp(cursor, "\027[D")) {
-      write(STDOUT, "", 1);
-      cursor += 2;
-    } 
-    */
   }
 
   return line;
@@ -378,28 +368,6 @@ void constructOrder(Work *cur, int workCount, char *line, JobList *jobList, int 
 
     free(tokens);
     break;
-  /*
-  case RED_O: // >
-    if((pid = fork()) == 0) {
-      if((fd = open(cur->next->args, O_WRONLY | O_CREAT | O_TRUNC)) != -1) {
-        dup2(fd, STDOUT);
-        execute(tokens, &status, run);
-      }
-      exit(EXIT_SUCCESS);
-    }
-    waitpid(pid, &status, 0);
-    break;
-  case RED_I: // <
-    if((pid = fork()) == 0) {
-      if((fd = open(cur->next->args, O_RDONLY)) != -1) {
-        dup2(fd, STDIN);
-        execute(tokens, &status, run);
-      }
-      exit(EXIT_SUCCESS);
-    }
-    waitpid(pid, &status, 0);
-    break;
-  */
   case PIPE:
     for(i=0; i<workCount; i++) {
       pipe(&fd[i*2]);
@@ -626,28 +594,7 @@ void echoCommand(char **args, int *status) {
     printf("\n");
     fflush(stdout);
   }
-/*
-  if(args[1] == NULL) { // echo
-    fprintf(stderr, "unsupported format\n");
-    return;
-  } else {
-    if(args[1][0] == '$') {
-      name = &args[1][1];
 
-      if(strcmp(name, "?") == 0) { // echo $?
-        printf("%d\n", WEXITSTATUS(*status));
-      } else if(strcmp(args[1], "$") == 0) { // echo $
-        printf("$\n");
-      } else if(getenv(name) != NULL) { // echo $name
-        printf("%s\n", getenv(name));
-      } else { // echo $non_exist
-        printf("\n");
-      }
-    } else {
-      printf("%s\n", args[1]); // echo text
-    }
-  }
-*/
   *status = SUCCESS;
 }
 
@@ -732,54 +679,3 @@ void launch(char **args, int *status, Mode mode) {
 
   waitpid(pid, status, 0);
 }
-
-/*
-
-int main(int argc, char ** argv, char **envp) {
-
-  char *prompt = "320sh> ";
-  char cmd[MAX_INPUT];
-  char *line = NULL;
-
-  while(true) {
-    char *cursor;
-    char last_char;
-    int rv;
-    int count;
-
-    // Print the prompt
-    rv = write(STDOUT, prompt, strlen(prompt));
-    if (rv == 0) { 
-      break;
-    }
-    
-    // read and parse the input
-    for(rv = 1, count = 0, cursor = cmd, last_char = 1;
-      rv && (++count < (MAX_INPUT-1)) && (last_char != '\n');
-      cursor++) { 
-
-      rv = read(STDIN, cursor, 1);
-      last_char = *cursor;
-    
-      if(last_char == 3) {
-        write(STDOUT, "^c", 2);
-      } else {
-       write(STDOUT, &last_char, 1);
-      }
-    }
-
-    *cursor = '\0';
-
-    if (rv == 0) { 
-      break;
-    }
-
-  // Execute the command, handling built-in commands separately 
-  // Just echo the command line for now
-  // write(1, cmd, strnlen(cmd, MAX_INPUT));
-  }
-
-  return 0;
-}
-
-*/
