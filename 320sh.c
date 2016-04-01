@@ -347,64 +347,25 @@ void executeLine(char *line, int *run, int debug) {
 
 void constructOrder(Work *cur, int workCount, int *run, int debug) {
   
-  char **tokens;
+  char **tokens = getTokens(cur->args);
 
-  int pid = 0;
+  int pid;
   int fd[2 * workCount];
   int status = 0;
   int i = 0;
   int count = 0;
 
-  for(i=0; i<workCount; i++) {
-    pipe(&fd[i*2]);
-  }
-
-  while(cur != NULL) {
-
-    if((pid = fork()) == 0) {
-      // NOT FIRST WORK
-      if(cur->prev != NULL) {
-        dup2(fd[(count-1)*2], STDIN);
-      }
-
-      //NOT LAST WORK
-      if(cur->next != NULL) {
-        dup2(fd[count*2-1], STDOUT);
-      }
-
-      for(i=0; i<2*workCount; i++) {
-        close(fd[i]);
-      }
-
-      tokens = getTokens(cur->args);
-      if(debug == TRUE) {
-        fprintf(stderr, "RUNNING: %s\n", *tokens);  
-      }
-
-      execute(tokens, &status, run);
-      if(debug == TRUE) {
-        fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
-      }
-
-      free(tokens);
-      exit(EXIT_SUCCESS);
-    }
-
-    waitpid(pid, NULL, 0);
-
-    cur = cur->next;
-    count++;
-  }
-
-  for(i=0; i<2*workCount; i++) {
-    close(fd[i]);
-  }
-  
-/*
   switch(cur->mode) {
   case NORMAL:
+    if(debug == TRUE) {
+      fprintf(stderr, "RUNNING: %s\n", *tokens);  
+    }
     execute(tokens, &status, run);
+    if(debug == TRUE) {
+      fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
+    }
     break;
+  /*
   case RED_O: // >
     if((pid = fork()) == 0) {
       if((fd = open(cur->next->args, O_WRONLY | O_CREAT | O_TRUNC)) != -1) {
@@ -425,46 +386,56 @@ void constructOrder(Work *cur, int workCount, int *run, int debug) {
     }
     waitpid(pid, &status, 0);
     break;
+  */
   case PIPE:
-    pipe(pipefd[0]);
-    pipe(pipefd[1]);
-    if((pid = fork()) == 0) {
-      dup2(pipefd[0][1], STDOUT);
-      close(pipefd[0][0]);
-      execvp(tokens[0], tokens);
-      //execute(tokens, &status, run);
+    for(i=0; i<workCount; i++) {
+      pipe(&fd[i*2]);
     }
-    close(pipefd[0][1]);
-    waitpid(pid, NULL, 0);
-    tokens = getTokens(cur->next->args);
-    if((pid = fork()) == 0) {
-      dup2(pipefd[0][0], STDIN);
-      close(pipefd[0][1]);
-      dup2(pipefd[1][1], STDOUT);
-      close(pipefd[1][0]);
-      execvp(tokens[0], tokens);
-    }
-    close(pipefd[0][0]);
-    close(pipefd[0][1]);
-    waitpid(pid, NULL, 0);
-    
-    if((pid = fork()) == 0) {
-      dup2(pipefd[1][0], STDIN);
-      close(pipefd[1][1]);
-      execvp(tokens[0], tokens);
-    }
-    close(pipefd[1][0]);
-    close(pipefd[1][1]);
-    waitpid(pid, NULL, 0);
 
-    close(pipefd[0][0]);
-    close(pipefd[0][1]);
-    close(pipefd[1][0]);
-    close(pipefd[1][1]);
+    while(cur != NULL) {
+
+      if((pid = fork()) == 0) {
+        // NOT FIRST WORK
+        if(cur->prev != NULL) {
+          dup2(fd[count-2], STDIN);
+        }
+        // NOT LAST WORK
+        if(cur->next != NULL) {
+          dup2(fd[count+1], STDOUT);
+        }
+
+        for(i=0; i<workCount * 2; i++) {
+          close(fd[i]);
+        }
+
+        tokens = getTokens(cur->args);
+        if(debug == TRUE) {
+          fprintf(stderr, "RUNNING: %s\n", *tokens);  
+        }
+        if(execvp(tokens[0], tokens) < 0) {
+          exit(EXIT_FAILURE);
+        }
+        if(debug == TRUE) {
+          fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
+        }
+      }
+
+      cur = cur->next;
+      count += 2;
+    }
+
+    for(i=0; i<workCount * 2; i++) {
+      close(fd[i]);
+    }
+
+    for(i=0; i<workCount+1; i++) {
+      wait(&status);
+    }
+
     break;
   default:
     break;
-  }*/
+  }
 }
 
 void execute(char **args, int *status, int *run) {
