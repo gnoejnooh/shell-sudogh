@@ -31,6 +31,7 @@ void parseLine(char *line, char *args1, char *args2, Mode *mode);
 char ** getTokens(char *line);
 void executeLine(char *line, int *run, int debug);
 void constructOrder(Work *cur, int workCount, int *run, int debug); // For piping and redirection
+void executeWork(WorkUnit *cur, int workUnitCount, int *status, int *run, Mode mode);
 void execute(char **args, int *status, int *run, Mode mode); // For single command
 
 void cdCommand(char **args, int *status);
@@ -347,21 +348,23 @@ void executeLine(char *line, int *run, int debug) {
 
 void constructOrder(Work *cur, int workCount, int *run, int debug) {
   
-  char **tokens;
+  char **tokens = NULL;
 
-  int pid;
-  int fd[2 * workCount];
+  int pid = 0;
+  int fd[workCount * 2];
+
   int status = 0;
   int i = 0;
   int count = 0;
 
   switch(cur->mode) {
   case NORMAL:
+
     tokens = getTokens(cur->args);
     if(debug == TRUE) {
       fprintf(stderr, "RUNNING: %s\n", *tokens);  
     }
-    execute(tokens, &status, run, NORMAL);
+    executeWork(cur->workUnitList->head, cur->workUnitList->count, &status, run, NORMAL);
     if(debug == TRUE) {
       fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
     }
@@ -413,7 +416,7 @@ void constructOrder(Work *cur, int workCount, int *run, int debug) {
         if(debug == TRUE) {
           fprintf(stderr, "RUNNING: %s\n", *tokens);  
         }
-        execute(tokens, &status, run, PIPE);
+        executeWork(cur->workUnitList->head, cur->workUnitList->count, &status, run, PIPE);
         if(debug == TRUE) {
           fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
         }
@@ -437,27 +440,96 @@ void constructOrder(Work *cur, int workCount, int *run, int debug) {
   }
 }
 
+void executeWork(WorkUnit *cur, int workUnitCount, int *status, int *run, Mode mode) {
+
+  char **tokens = NULL;
+  WorkUnit *head = cur;
+  
+  int pid = 0;
+  int fd = 0;
+
+  if(cur->mode == NORMAL) {
+    tokens = getTokens(cur->args);
+    execute(tokens, status, run, mode);
+  } else {
+    if((pid = fork()) == 0) {
+      while(cur->next != NULL) {
+        Mode unitMode = cur->mode;
+        cur = cur->next;
+
+        if(unitMode == RED_O) { // >
+          if((fd = open(cur->args, O_WRONLY | O_CREAT | O_TRUNC)) != -1) {
+            dup2(fd, STDOUT);
+            close(fd);
+          }
+        } else if(unitMode == RED_I) { // <
+          if((fd = open(cur->args, O_RDONLY)) != -1) {
+            dup2(fd, STDIN);
+            close(fd);
+          }
+        }
+      }
+
+      tokens = getTokens(head->args);
+      execute(tokens, status, run, mode);
+
+      exit(EXIT_SUCCESS);
+    }
+
+    waitpid(pid, status, 0);
+
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
+  }
+}
+
 void execute(char **args, int *status, int *run, Mode mode) {
   if(args[0] == NULL) {
     return;
   }
+
   if(strcmp(args[0], "cd") == 0) {
     cdCommand(args, status);
+
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   } else if(strcmp(args[0], "pwd") == 0) {
     pwdCommand(status);
+
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   } else if(strcmp(args[0], "echo") == 0) {
     echoCommand(args, status);
+
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   } else if(strcmp(args[0], "set") == 0) {
     setCommand(args, status);
+
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   } else if(strcmp(args[0], "help") == 0) {
     helpCommand(status);
+
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   } else if(strcmp(args[0], "exit") == 0) {
     exitCommand(status, run);
+
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   }
 
@@ -595,7 +667,6 @@ void launch(char **args, int *status, Mode mode) {
       fprintf(stderr, "%s: command not found\n", args[0]);
       exit(EXIT_FAILURE);
     }
-    exit(EXIT_SUCCESS);
   }
 
   waitpid(pid, status, 0);
