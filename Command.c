@@ -89,9 +89,23 @@ void initializeWorkList(WorkList *list) {
 
 void insertWork(WorkList *list, char *args, Mode mode) {
 	Work *work = malloc(sizeof(Work));
+	work->workUnitList = malloc(sizeof(WorkUnitList));
+
+	char *args1 = malloc(sizeof(char) * MAX_INPUT);
+  char *args2 = malloc(sizeof(char) * MAX_INPUT);
+
+  Mode workUnitMode = NORMAL;
+
+  initializeWorkUnitList(work->workUnitList);
 
 	strcpy(work->args, args);
 	work->mode = mode;
+
+	do {
+    parseWorkArgs(args, args1, args2, &mode);
+    insertWorkUnit(work->workUnitList, args1, mode);
+    strcpy(args, args2);
+  } while(workUnitMode != NORMAL);
 
 	if(list->count == 0) {
 		work->prev = NULL;
@@ -106,11 +120,84 @@ void insertWork(WorkList *list, char *args, Mode mode) {
 	}
 
 	(list->count)++;
+
+	free(args1);
+	free(args2);
 }
 
 void freeWorkList(WorkList *list) {
 	Work *cur = list->head;
 	Work *next = NULL;
+	int i = 0;
+
+	while(i < list->count) {
+		next = cur->next;
+		freeWorkUnitList(cur->workUnitList);
+		free(cur->workUnitList);
+		free(cur);
+		cur = next;
+		i++;
+	}
+}
+
+void parseWorkArgs(char *args, char *args1, char *args2, Mode *mode) {
+	int i = 0;
+  *mode = NORMAL;
+
+  for(i=0; i<strlen(args); i++) {
+    switch(args[i]) {
+    case '>':
+      args[i] = '\0';
+      strcpy(args1, args);
+      while(args[i+1] == ' ') i++;
+      strcpy(args2, &args[i+1]);
+      *mode = RED_O;
+      return;
+    case '<':
+      args[i] = '\0';
+      strcpy(args1, args);
+      while(args[i+1] == ' ') i++;
+      strcpy(args2, &args[i+1]);
+      *mode = RED_I;
+      return;
+    default:
+      continue;
+    }
+  }
+
+  strcpy(args1, args);
+}
+
+void initializeWorkUnitList(WorkUnitList *list) {
+	list->head = NULL;
+	list->tail = NULL;
+	list->count = 0;
+}
+
+void insertWorkUnit(WorkUnitList *list, char *args, Mode mode) {
+	WorkUnit *unit = malloc(sizeof(WorkUnit));
+
+	strcpy(unit->args, args);
+	unit->mode = mode;
+
+	if(list->count == 0) {
+		unit->prev = NULL;
+		unit->next = NULL;
+		list->head = unit;
+		list->tail = unit;
+	} else {
+		unit->prev = list->tail;
+		unit->next = NULL;
+		list->tail->next = unit;
+		list->tail = unit;
+	}
+
+	(list->count)++;
+}
+
+void freeWorkUnitList(WorkUnitList *list) {
+	WorkUnit *cur = list->head;
+	WorkUnit *next = NULL;
 	int i = 0;
 
 	while(i < list->count) {

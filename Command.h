@@ -24,9 +24,29 @@ typedef struct commandList {
 	int count;
 } CommandList;
 
+// Redirection-wise
+typedef struct workUnit {
+	char args[MAX_INPUT];
+
+	Mode mode;
+
+	struct workUnit *prev;
+	struct workUnit *next;
+} WorkUnit;
+
+typedef struct workUnitList {
+	WorkUnit *head;
+	WorkUnit *tail;
+	int count;
+} WorkUnitList;
+
+// Piping-wise
 typedef struct work {
   char args[MAX_INPUT];
+  WorkUnitList *workUnitList;
+
   Mode mode;
+
   struct work *prev;
   struct work *next;
 } Work;
@@ -45,5 +65,11 @@ void freeCommandList(CommandList *list);
 void initializeWorkList(WorkList *list);
 void insertWork(WorkList *list, char *args, Mode mode);
 void freeWorkList(WorkList *list);
+
+void parseWorkArgs(char *args, char *args1, char *args2, Mode *mode);
+
+void initializeWorkUnitList(WorkUnitList *list);
+void insertWorkUnit(WorkUnitList *list, char *args, Mode mode);
+void freeWorkUnitList(WorkUnitList *list);
 
 #endif

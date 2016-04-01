@@ -284,20 +284,6 @@ void parseLine(char *line, char *args1, char *args2, Mode *mode) {
 
   for(i=0; i<strlen(line); i++) {
     switch(line[i]) {
-    case '>':
-      line[i] = '\0';
-      strcpy(args1, line);
-      while(line[i+1] == ' ') i++;
-      strcpy(args2, &line[i+1]);
-      *mode = RED_O;
-      return;
-    case '<':
-      line[i] = '\0';
-      strcpy(args1, line);
-      while(line[i+1] == ' ') i++;
-      strcpy(args2, &line[i+1]);
-      *mode = RED_I;
-      return;
     case '|':
       line[i] = '\0';
       strcpy(args1, line);
