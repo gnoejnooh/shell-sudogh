@@ -347,7 +347,7 @@ void constructOrder(Work *cur, int workCount, char *line, JobList *jobList, int 
   
   char **tokens = NULL;
 
-  int pid = 0;
+  pid_t pid = 0;
   int fd[workCount * 2];
 
   int status = 0;
@@ -428,7 +428,7 @@ void executeWork(WorkUnit *cur, int workUnitCount, int *status, int *run, Mode m
   char **tokens = NULL;
   WorkUnit *head = cur;
   
-  int pid = 0;
+  pid_t pid = 0;
   int fd = 0;
 
   if(cur->mode == NORMAL) {

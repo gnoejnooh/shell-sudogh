@@ -17,10 +17,12 @@ void importHistory(CommandList *commandList) {
 		return;
 	}
 
-	while(fscanf(fp, "%s", line) != EOF) {
+	while(fgets(line, MAX_INPUT, fp) != NULL) {
+		line[strlen(line)-1] = '\0';
 		constructCommand(commandList, line);
 	}
 
+	free(line);
 	free(path);
 	fclose(fp);
 }
