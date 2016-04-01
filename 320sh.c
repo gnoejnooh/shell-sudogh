@@ -91,13 +91,14 @@ int main(int argc, char ** argv, char **envp) {
 void printPrompt() {
   char *prompt = "320sh> ";
   char *cwd = getcwd(NULL, 0);
-  
-  cwd = strrchr(cwd, '/');
+  char *directory = strrchr(cwd, '/');
 
   write(STDOUT, "[", 1);
-  write(STDOUT, cwd, strlen(cwd));
+  write(STDOUT, directory, strlen(directory));
   write(STDOUT, "] ", 2);
   write(STDOUT, prompt, strlen(prompt));
+
+  free(cwd);
 }
 
 char * readLine(CommandList *commandList) {
@@ -374,6 +375,8 @@ void constructOrder(Work *cur, int workCount, char *line, JobList *jobList, int 
     if(debug == TRUE) {
       fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
     }
+
+    free(tokens);
     break;
   /*
   case RED_O: // >
@@ -430,6 +433,8 @@ void constructOrder(Work *cur, int workCount, char *line, JobList *jobList, int 
         if(debug == TRUE) {
           fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
         }
+
+        free(tokens);
       }
 
       cur = cur->next;
@@ -461,6 +466,8 @@ void executeWork(WorkUnit *cur, int workUnitCount, int *status, int *run, Mode m
   if(cur->mode == NORMAL) {
     tokens = getTokens(cur->args);
     execute(tokens, status, run, mode);
+    free(tokens);
+
   } else {
     if((pid = fork()) == 0) {
       while(cur->next != NULL) {
@@ -483,6 +490,7 @@ void executeWork(WorkUnit *cur, int workUnitCount, int *status, int *run, Mode m
       tokens = getTokens(head->args);
       execute(tokens, status, run, mode);
 
+      free(tokens);
       exit(EXIT_SUCCESS);
     }
 
@@ -556,9 +564,11 @@ void cdCommand(char **args, int *status) {
 }
 
 void pwdCommand(int *status) {
+  char *cwd = getcwd(NULL, 0);
   *status = FAILURE;
 
-  printf("%s\n", getcwd(NULL, 0));
+  printf("%s\n", cwd);
+  free(cwd);
 
   *status = SUCCESS;
 }
