@@ -403,6 +403,10 @@ void constructOrder(Work *cur, int workCount, char *line, JobList *jobList, int 
     while(cur != NULL) {
 
       if((pid = fork()) == 0) {
+        // FIRST WORK
+        if(cur->prev == NULL) {
+          insertJob(jobList, line, getpid(), UNDEF);
+        }
         // NOT FIRST WORK
         if(cur->prev != NULL) {
           dup2(fd[(count-1)*2], STDIN);
