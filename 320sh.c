@@ -443,21 +443,39 @@ void execute(char **args, int *status, int *run, Mode mode) {
   }
   if(strcmp(args[0], "cd") == 0) {
     cdCommand(args, status);
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   } else if(strcmp(args[0], "pwd") == 0) {
     pwdCommand(status);
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   } else if(strcmp(args[0], "echo") == 0) {
     echoCommand(args, status);
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   } else if(strcmp(args[0], "set") == 0) {
     setCommand(args, status);
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   } else if(strcmp(args[0], "help") == 0) {
     helpCommand(status);
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   } else if(strcmp(args[0], "exit") == 0) {
     exitCommand(status, run);
+    if(mode == PIPE) {
+      exit(EXIT_SUCCESS);
+    }
     return;
   }
 
@@ -490,10 +508,57 @@ void pwdCommand(int *status) {
 
 // TBI
 void echoCommand(char **args, int *status) {
-  char *name = NULL;
-
+  //char *name = NULL;
+  char* var_plus = NULL;
+  int i = 2;
   *status = FAILURE;
 
+  if(args[1] == NULL) { // echo
+    printf("\n");
+    return;
+  }
+
+  if(strcmp(args[1], "$") == 0) {
+    printf("%s", "$");
+    while(args[i] != NULL) {
+      printf(" %s", args[i]);
+      i++;
+    }
+    printf("\n");
+    fflush(stdout);
+  } else if(args[1][0] == '$') {
+    var_plus = &args[1][2];
+    if(args[1][1] == '?') {
+      printf("%d", WEXITSTATUS(*status));
+      printf("%s", var_plus);
+      while(args[i] != NULL) {
+        printf(" %s", args[i]);
+        i++;
+      }
+      printf("\n");
+      fflush(stdout);
+    } else if(args[1][1] == '$') {
+      printf("%d", getpid());
+      printf("%s", var_plus);
+      while(args[i] != NULL) {
+        printf(" %s", args[i]);
+        i++;
+      }
+      printf("\n");
+      fflush(stdout);
+    } else {
+      printf("\n");
+    }
+  } else {
+    printf("%s", args[1]);
+    while(args[i] != NULL) {
+      printf(" %s", args[i]);
+      i++;
+    }
+    printf("\n");
+    fflush(stdout);
+  }
+/*
   if(args[1] == NULL) { // echo
     fprintf(stderr, "unsupported format\n");
     return;
@@ -514,7 +579,7 @@ void echoCommand(char **args, int *status) {
       printf("%s\n", args[1]); // echo text
     }
   }
-
+*/
   *status = SUCCESS;
 }
 
