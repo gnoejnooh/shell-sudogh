@@ -30,7 +30,7 @@ void eraseLine(int pos, int count);
 void parseLine(char *line, char *args1, char *args2, Mode *mode);
 char ** getTokens(char *line);
 void executeLine(char *line, int *run, int debug);
-void constructOrder(Work *cur, int *run, int debug); // For piping and redirection
+void constructOrder(Work *cur, int workCount, int *run, int debug); // For piping and redirection
 void execute(char **args, int *status, int *run); // For single command
 
 void cdCommand(char **args, int *status);
@@ -337,7 +337,7 @@ void executeLine(char *line, int *run, int debug) {
 
   cur = workList->head;
 
-  constructOrder(cur, run, debug);
+  constructOrder(cur, workList->count, run, debug);
 
   free(args1);
   free(args2);
@@ -345,17 +345,62 @@ void executeLine(char *line, int *run, int debug) {
   free(workList);
 }
 
-void constructOrder(Work *cur, int *run, int debug) {
-  int pid = 0;
-  int fd = 0;
-  int pipefd[2][2];
-  int status = 0;
-  char **tokens = getTokens(cur->args);
+void constructOrder(Work *cur, int workCount, int *run, int debug) {
+  
+  char **tokens;
 
-  if(debug == TRUE) {
-    fprintf(stderr, "RUNNING: %s\n", *tokens);  
+  int pid = 0;
+  int fd[2 * workCount];
+  int status = 0;
+  int i = 0;
+  int count = 0;
+
+  for(i=0; i<workCount; i++) {
+    pipe(&fd[i*2]);
   }
 
+  while(cur != NULL) {
+
+    if((pid = fork()) == 0) {
+      // NOT FIRST WORK
+      if(cur->prev != NULL) {
+        dup2(fd[(count-1)*2], STDIN);
+      }
+
+      //NOT LAST WORK
+      if(cur->next != NULL) {
+        dup2(fd[count*2-1], STDOUT);
+      }
+
+      for(i=0; i<2*workCount; i++) {
+        close(fd[i]);
+      }
+
+      tokens = getTokens(cur->args);
+      if(debug == TRUE) {
+        fprintf(stderr, "RUNNING: %s\n", *tokens);  
+      }
+
+      execute(tokens, &status, run);
+      if(debug == TRUE) {
+        fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
+      }
+
+      free(tokens);
+      exit(EXIT_SUCCESS);
+    }
+
+    waitpid(pid, NULL, 0);
+
+    cur = cur->next;
+    count++;
+  }
+
+  for(i=0; i<2*workCount; i++) {
+    close(fd[i]);
+  }
+  
+/*
   switch(cur->mode) {
   case NORMAL:
     execute(tokens, &status, run);
@@ -380,7 +425,7 @@ void constructOrder(Work *cur, int *run, int debug) {
     }
     waitpid(pid, &status, 0);
     break;
-  case PIPE: 
+  case PIPE:
     pipe(pipefd[0]);
     pipe(pipefd[1]);
     if((pid = fork()) == 0) {
@@ -417,16 +462,9 @@ void constructOrder(Work *cur, int *run, int debug) {
     close(pipefd[1][0]);
     close(pipefd[1][1]);
     break;
-    break;
   default:
     break;
-  }
-
-  if(debug == TRUE) {
-    fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
-  }
-
-  free(tokens);
+  }*/
 }
 
 void execute(char **args, int *status, int *run) {
