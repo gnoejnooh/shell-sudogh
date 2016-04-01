@@ -31,7 +31,7 @@ void parseLine(char *line, char *args1, char *args2, Mode *mode);
 char ** getTokens(char *line);
 void executeLine(char *line, int *run, int debug);
 void constructOrder(Work *cur, int workCount, int *run, int debug); // For piping and redirection
-void execute(char **args, int *status, int *run); // For single command
+void execute(char **args, int *status, int *run, Mode mode); // For single command
 
 void cdCommand(char **args, int *status);
 void pwdCommand(int *status);
@@ -40,7 +40,7 @@ void setCommand(char **args, int *status);
 void helpCommand(int *status);
 void exitCommand(int *status, int *run);
 
-void launch(char **args, int *status);
+void launch(char **args, int *status, Mode mode);
 
 int main(int argc, char ** argv, char **envp) {
 
@@ -347,7 +347,7 @@ void executeLine(char *line, int *run, int debug) {
 
 void constructOrder(Work *cur, int workCount, int *run, int debug) {
   
-  char **tokens = getTokens(cur->args);
+  char **tokens;
 
   int pid;
   int fd[2 * workCount];
@@ -357,10 +357,11 @@ void constructOrder(Work *cur, int workCount, int *run, int debug) {
 
   switch(cur->mode) {
   case NORMAL:
+    tokens = getTokens(cur->args);
     if(debug == TRUE) {
       fprintf(stderr, "RUNNING: %s\n", *tokens);  
     }
-    execute(tokens, &status, run);
+    execute(tokens, &status, run, NORMAL);
     if(debug == TRUE) {
       fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
     }
@@ -397,11 +398,11 @@ void constructOrder(Work *cur, int workCount, int *run, int debug) {
       if((pid = fork()) == 0) {
         // NOT FIRST WORK
         if(cur->prev != NULL) {
-          dup2(fd[count-2], STDIN);
+          dup2(fd[(count-1)*2], STDIN);
         }
         // NOT LAST WORK
         if(cur->next != NULL) {
-          dup2(fd[count+1], STDOUT);
+          dup2(fd[count*2+1], STDOUT);
         }
 
         for(i=0; i<workCount * 2; i++) {
@@ -412,16 +413,14 @@ void constructOrder(Work *cur, int workCount, int *run, int debug) {
         if(debug == TRUE) {
           fprintf(stderr, "RUNNING: %s\n", *tokens);  
         }
-        if(execvp(tokens[0], tokens) < 0) {
-          exit(EXIT_FAILURE);
-        }
+        execute(tokens, &status, run, PIPE);
         if(debug == TRUE) {
           fprintf(stderr, "ENDED: %s (ret=%d)\n", tokens[0], status);  
         }
       }
 
       cur = cur->next;
-      count += 2;
+      count++;
     }
 
     for(i=0; i<workCount * 2; i++) {
@@ -438,7 +437,7 @@ void constructOrder(Work *cur, int workCount, int *run, int debug) {
   }
 }
 
-void execute(char **args, int *status, int *run) {
+void execute(char **args, int *status, int *run, Mode mode) {
   if(args[0] == NULL) {
     return;
   }
@@ -462,7 +461,7 @@ void execute(char **args, int *status, int *run) {
     return;
   }
 
-  launch(args, status);
+  launch(args, status, mode);
 }
 
 void cdCommand(char **args, int *status) {
@@ -580,8 +579,16 @@ void exitCommand(int *status, int *run) {
   *status = SUCCESS;
 }
 
-void launch(char **args, int *status) {
+void launch(char **args, int *status, Mode mode) {
   pid_t pid = 0;
+
+  if(mode == PIPE) {
+    if(execvp(args[0], args) < 0) {
+      fprintf(stderr, "%s: command not found\n", args[0]);
+      exit(EXIT_FAILURE);
+    }
+    return;
+  }
 
   if((pid = fork()) == 0) {
     if(execvp(args[0], args) < 0) {
