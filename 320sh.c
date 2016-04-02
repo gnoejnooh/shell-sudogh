@@ -405,6 +405,13 @@ void constructOrder(Work *cur, int workCount, char *line, JobList *jobList, int 
         free(tokens);
       }
 
+      if(cur->prev == NULL) {
+          insertJob(jobList, line, pid, UNDEF);
+          printf("jjj%d", jobList->head->pid);
+          printf("parent%d child%d", getpid(), pid);
+          fflush(stdout);
+      }
+
       cur = cur->next;
       count++;
     }
