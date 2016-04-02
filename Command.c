@@ -142,11 +142,16 @@ void freeWorkList(WorkList *list) {
 
 void parseWorkArgs(char *args, char *args1, char *args2, Mode *mode) {
 	int i = 0;
+	int j = 0;
   *mode = NORMAL;
 
   for(i=0; i<strlen(args); i++) {
     switch(args[i]) {
     case '>':
+    	j = i-1;
+    	while(args[j] == ' ') {
+    		args[j] = '\0';
+    	}
       args[i] = '\0';
       strcpy(args1, args);
       while(args[i+1] == ' ') i++;
@@ -154,6 +159,10 @@ void parseWorkArgs(char *args, char *args1, char *args2, Mode *mode) {
       *mode = RED_O;
       return;
     case '<':
+    	j = i-1;
+    	while(args[j] == ' ') {
+    		args[j] = '\0';
+    	}
       args[i] = '\0';
       strcpy(args1, args);
       while(args[i+1] == ' ') i++;

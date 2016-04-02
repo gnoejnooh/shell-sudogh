@@ -278,11 +278,16 @@ void eraseLine(int pos, int count) {
 
 void parseLine(char *line, char *args1, char *args2, Mode *mode) {
   int i = 0;
+  int j = 0;
   *mode = NORMAL;
 
   for(i=0; i<strlen(line); i++) {
     switch(line[i]) {
     case '|':
+      j = i-1;
+      while(line[j] == ' ') {
+        line[j] = '\0';
+      }
       line[i] = '\0';
       strcpy(args1, line);
       while(line[i+1] == ' ') i++;
