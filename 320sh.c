@@ -402,10 +402,7 @@ void constructOrder(Work *cur, int workCount, char *line, JobList *jobList, int 
       }
 
       if(cur->prev == NULL) {
-          insertJob(jobList, line, pid, UNDEF);
-          printf("jjj%d", jobList->head->pid);
-          printf("parent%d child%d", getpid(), pid);
-          fflush(stdout);
+        insertJob(jobList, line, pid, UNDEF);
       }
 
       cur = cur->next;
