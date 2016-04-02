@@ -102,8 +102,8 @@ void insertWork(WorkList *list, char *args, Mode mode) {
 	work->mode = mode;
 
 	do {
-    parseWorkArgs(args, args1, args2, &mode);
-    insertWorkUnit(work->workUnitList, args1, mode);
+    parseWorkArgs(args, args1, args2, &workUnitMode);
+    insertWorkUnit(work->workUnitList, args1, workUnitMode);
     strcpy(args, args2);
   } while(workUnitMode != NORMAL);
 
@@ -191,7 +191,6 @@ void insertWorkUnit(WorkUnitList *list, char *args, Mode mode) {
 		list->tail->next = unit;
 		list->tail = unit;
 	}
-
 	(list->count)++;
 }
 
