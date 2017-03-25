@@ -1,5 +1,4 @@
-# Shell and Chat (C Programming)
-## 320sh: Mini-shell with basic operations (a small subset of Bash's functionality)
+# 320sh: Mini-shell with basic operations (a small subset of Bash's functionality)
 #### Launch shell with following command `./320sh`
 #### To disable command key capture and job control on the parent shell, use `. ./launcher.sh`
 + The built-in functionalities include: `cd`,`pwd`,`echo`,`set`,`help`
